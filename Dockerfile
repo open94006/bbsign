@@ -15,4 +15,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY backend/ .
 COPY --from=web /web/dist ./static
 ENV PORT=8080 PYTHONUNBUFFERED=1
+USER nobody
 CMD ["sh", "-c", "exec uvicorn main:app --host 0.0.0.0 --port $PORT"]
