@@ -122,6 +122,7 @@ export default function Admin() {
         </button>
       </div>
       <p className="admin-note">改過的賽事會鎖定，之後爬蟲不會覆蓋。不想顯示的賽事請勾「隱藏」，不要刪除，否則隔天爬蟲又會加回來。</p>
+      <Crawl token={token} onDone={() => load()} />
       <input className="admin-search" type="search" placeholder="搜尋賽事名稱或縣市" value={query} onChange={(e) => setQuery(e.target.value)} />
       <table className="admin-table">
         <thead>
@@ -152,6 +153,59 @@ export default function Admin() {
         </tbody>
       </table>
     </main>
+  )
+}
+
+type Execution = { name: string; createTime: string; completionTime?: string; completionStatus?: string } | null
+const STATUS: Record<string, string> = {
+  EXECUTION_SUCCEEDED: '完成', EXECUTION_FAILED: '失敗', EXECUTION_CANCELLED: '已取消',
+}
+
+function Crawl({ token, onDone }: { token: string; onDone: () => void }) {
+  const [last, setLast] = useState<Execution | undefined>()
+  const [msg, setMsg] = useState('')
+  const running = !!last && !last.completionTime
+
+  const refresh = () =>
+    api('/api/admin/crawl', token)
+      .then((e: Execution) => {
+        if (running && e?.completionTime) onDone()
+        setLast(e)
+        setMsg('')
+      })
+      .catch((e) => setMsg(e.message))
+
+  useEffect(() => {
+    refresh()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // ponytail: 執行中每 15 秒輪詢一次；爬一次約幾分鐘，不需要推播
+  useEffect(() => {
+    if (!running) return
+    const t = setInterval(refresh, 15000)
+    return () => clearInterval(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [running, last?.name])
+
+  const start = (isNew: boolean) =>
+    api(`/api/admin/crawl${isNew ? '?new=true' : ''}`, token, { method: 'POST' })
+      .then((e: Execution) => setLast(e))
+      .catch((e) => setMsg(e.message))
+
+  const when = (s?: string) => (s ? new Date(s).toLocaleString('zh-TW', { hour12: false }) : '')
+  return (
+    <div className="admin-crawl">
+      <button className="bb-btn" disabled={running} onClick={() => start(true)}>只抓新賽事</button>
+      <button className="bb-btn" disabled={running} onClick={() => start(false)}>完整更新</button>
+      {!msg && <span>
+        {last === undefined ? '讀取爬蟲狀態…'
+          : !last ? '還沒執行過爬蟲'
+          : running ? `執行中（${when(last.createTime)} 開始）…`
+          : `上次：${when(last.completionTime)} ${STATUS[last.completionStatus ?? ''] ?? last.completionStatus ?? ''}`}
+      </span>}
+      {msg && <p className="error" role="alert">{msg}</p>}
+    </div>
   )
 }
 

@@ -178,6 +178,8 @@ button, input, select { font: inherit; color: inherit; }
   background: var(--night-2);
 }
 .admin label { display: grid; gap: var(--space-1); font-size: 14px; }
+.admin-crawl { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin-bottom: var(--space-3); font-size: 14px; color: var(--chalk-2); }
+.admin-crawl .error { flex-basis: 100%; }
 .admin-search { max-width: 360px; margin-bottom: var(--space-3); }
 .admin-table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .admin-table th,

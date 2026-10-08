@@ -1,0 +1,30 @@
+# push 到 main → Cloud Build 觸發：建置映像檔 → 部署網站服務與爬蟲 Job（共用同一個映像檔）
+# 爬蟲目前由管理頁按鈕手動啟動，沒有排程。觸發條件與權限設定見 README。
+substitutions:
+  _REGION: asia-east1
+  _IMAGE: ${_REGION}-docker.pkg.dev/${PROJECT_ID}/cloud-run-source-deploy/bbsign:${COMMIT_SHA}
+options:
+  dynamicSubstitutions: true
+  logging: CLOUD_LOGGING_ONLY
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args: [build, -t, $_IMAGE, .]
+  - name: gcr.io/cloud-builders/docker
+    args: [push, $_IMAGE]
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -euc
+      - |
+        SA=bbsign@$PROJECT_ID.iam.gserviceaccount.com
+        DB=DATABASE_URL=bbsign-database-url:latest,REDIS_URL=bbsign-redis-url:latest
+        gcloud run deploy bbsign --image $_IMAGE --region $_REGION --allow-unauthenticated \
+          --service-account $$SA --set-secrets "$$DB,ADMIN_TOKEN=bbsign-admin-token:latest" \
+          --update-env-vars CRAWL_JOB=projects/$PROJECT_ID/locations/$_REGION/jobs/bbsign-crawl
+        gcloud run jobs deploy bbsign-crawl --image $_IMAGE --region $_REGION --service-account $$SA \
+          --command python --args=-m,crawl.run --task-timeout 30m --max-retries 0 \
+          --set-secrets "$$DB,ANTHROPIC_API_KEY=bbsign-anthropic-key:latest"
+        # 讓網站服務（管理頁）能啟動爬蟲 Job
+        gcloud run jobs add-iam-policy-binding bbsign-crawl --region $_REGION \
+          --member serviceAccount:$$SA --role roles/run.invoker >/dev/null

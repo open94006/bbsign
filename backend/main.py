@@ -5,6 +5,7 @@ import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import httpx
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -67,7 +68,7 @@ FIELDS = list(EventIn.model_fields)  # 全部對應 events 欄位名稱
 def admin(request: Request) -> None:
     # Cloud Run 會把真實來源 IP 附加在 X-Forwarded-For 最後一個
     ip = request.headers.get("x-forwarded-for", "").split(",")[-1].strip() or request.client.host
-    key = f"authfail:{ip}"
+    key = f"bb:authfail:{ip}"
     if db.cache and int(db.cache.get(key) or 0) >= 10:
         raise HTTPException(429, "登入失敗次數過多，請 15 分鐘後再試")
     token = request.headers.get("authorization", "").removeprefix("Bearer ")
@@ -109,6 +110,38 @@ def admin_update(event_id: int, e: EventIn):
         raise HTTPException(404, "找不到這筆賽事")
     db.clear_cache()
     return row
+
+
+# ---------- 爬蟲（呼叫 Cloud Run Jobs API 啟動 bbsign-crawl） ----------
+
+def run_api(method: str, path: str, **kw) -> dict:
+    job = os.environ.get("CRAWL_JOB")  # cloudbuild.yaml 設定；本機沒有，請直接執行 python -m crawl.run
+    if not job:
+        raise HTTPException(503, "沒有設定爬蟲 Job（只有部署到 Cloud Run 才能從這裡啟動）")
+    token = httpx.get(
+        "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token",
+        headers={"Metadata-Flavor": "Google"},
+    ).json()["access_token"]
+    r = httpx.request(method, f"https://run.googleapis.com/v2/{job}{path}",
+                      headers={"Authorization": f"Bearer {token}"}, timeout=30, **kw)
+    if r.is_error:
+        raise HTTPException(502, f"Cloud Run 回應錯誤（{r.status_code}）：{r.text[:300]}")
+    return r.json()
+
+
+@app.get("/api/admin/crawl", dependencies=[Depends(admin)])
+def crawl_status():
+    return run_api("GET", "").get("latestCreatedExecution")  # 沒跑過是 null
+
+
+@app.post("/api/admin/crawl", dependencies=[Depends(admin)])
+def crawl_start(new: bool = False):
+    last = run_api("GET", "").get("latestCreatedExecution")
+    if last and not last.get("completionTime"):
+        raise HTTPException(409, "爬蟲還在執行中，請等它跑完")
+    args = ["-m", "crawl.run", *(["--new"] if new else [])]
+    e = run_api("POST", ":run", json={"overrides": {"containerOverrides": [{"args": args}]}})["metadata"]
+    return {"name": e["name"], "createTime": e["createTime"]}
 
 
 # ---------- 前端靜態檔（Docker 建置時把 frontend/dist 複製到 static/） ----------

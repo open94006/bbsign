@@ -71,42 +71,34 @@ cd backend && set -a; source .env; set +a
 - Neon 選 `ap-southeast-1`（新加坡）。
 - Upstash 選東京或新加坡。
 
+第一次部署時，用環境變數帶入機密。`ADMIN_TOKEN` 沒帶的話會自動產生：
+
 ```bash
-PROJECT=你的專案 ID
-REGION=asia-east1
+PROJECT=你的專案ID DATABASE_URL='postgresql://…-pooler…' REDIS_URL='rediss://…' ANTHROPIC_API_KEY='sk-ant-…' ./deploy.sh
+```
 
-# 機密放 Secret Manager（每個值各建一次）
-printf '%s' 'postgresql://…-pooler…' | gcloud secrets create bbsign-database-url --data-file=-
-printf '%s' 'rediss://…'              | gcloud secrets create bbsign-redis-url --data-file=-
-printf '%s' 'sk-ant-…'                | gcloud secrets create bbsign-anthropic-key --data-file=-
-printf '%s' "$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')" | gcloud secrets create bbsign-admin-token --data-file=-
+[deploy.sh](deploy.sh) 會依序完成以下工作：
 
-# 網站與 API
-gcloud run deploy bbsign --source . --region $REGION --allow-unauthenticated \
-  --set-secrets DATABASE_URL=bbsign-database-url:latest,REDIS_URL=bbsign-redis-url:latest,ADMIN_TOKEN=bbsign-admin-token:latest
+- 啟用需要的 API
+- 建立服務帳戶 `bbsign`
+- 把機密寫進 Secret Manager
+- 部署網站服務與爬蟲 Job（共用同一個映像檔）
+- 建立兩個排程：每 3 天抓一次新賽事、每週一完整更新
 
-# 爬蟲工作
-gcloud run jobs deploy bbsign-crawl --source . --region $REGION \
-  --command python --args=-m,crawl.run --task-timeout 30m --max-retries 0 \
-  --set-secrets DATABASE_URL=bbsign-database-url:latest,REDIS_URL=bbsign-redis-url:latest,ANTHROPIC_API_KEY=bbsign-anthropic-key:latest
+之後更新程式碼時，直接執行 `./deploy.sh` 即可。要更換某個機密，只帶那個變數再執行一次。
 
-# 排程（服務帳戶需要 roles/run.invoker）
-JOB_URI="https://run.googleapis.com/v2/projects/$PROJECT/locations/$REGION/jobs/bbsign-crawl:run"
-SA=服務帳戶@$PROJECT.iam.gserviceaccount.com
+### push 自動部署（Cloud Build）
 
-# 每 3 天凌晨 3 點：只抓資料庫還沒有的新賽事（每月 1、4、7…日，月底到月初可能只隔 1–2 天）
-gcloud scheduler jobs create http bbsign-crawl-new --location $REGION \
-  --schedule "0 3 */3 * *" --time-zone Asia/Taipei --http-method POST --uri "$JOB_URI" \
-  --message-body '{"overrides":{"containerOverrides":[{"args":["-m","crawl.run","--new"]}]}}' \
-  --oauth-service-account-email $SA
+[cloudbuild.yaml](cloudbuild.yaml) 會建置映像檔，並部署網站服務與爬蟲 Job。爬蟲不排程，改由管理頁的「只抓新賽事／完整更新」按鈕啟動。
 
-# 每週一凌晨 4 點：完整更新所有未截止的賽事（內容有變才重抽）
-gcloud scheduler jobs create http bbsign-crawl-weekly --location $REGION \
-  --schedule "0 4 * * 1" --time-zone Asia/Taipei --http-method POST --uri "$JOB_URI" \
-  --oauth-service-account-email $SA
+一次性設定（機密與服務帳戶 `bbsign` 要先存在，可以先跑一次 `deploy.sh`）：
 
-# 之前建過每天執行的排程就刪掉
-gcloud scheduler jobs delete bbsign-crawl-daily --location $REGION
+1. 到 Cloud Build → 觸發條件 → 連結 GitHub `open94006/bbsign`，建立觸發條件：事件選「推送至分支」，分支填 `^main$`，設定檔選 `cloudbuild.yaml`。
+2. 給觸發條件使用的服務帳戶這些角色：`Cloud Run 管理員`、`服務帳戶使用者`、`Artifact Registry 寫入者`、`記錄寫入者`。
+3. 映像檔放在 Artifact Registry 的 `cloud-run-source-deploy`。跑過 `deploy.sh` 就已經有了；沒有的話先建立：
+
+```bash
+gcloud artifacts repositories create cloud-run-source-deploy --repository-format docker --location asia-east1
 ```
 
 ## 已知限制

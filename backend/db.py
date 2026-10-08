@@ -5,7 +5,7 @@ import psycopg
 import redis
 from psycopg.rows import dict_row
 
-CACHE_KEY = "events"
+CACHE_KEY = "bb:events"  # 與 rooning 共用同一個 Redis，key 一律加 bb: 前綴
 # 沒設 REDIS_URL（本機開發）就不快取、不限流
 cache = redis.from_url(os.environ["REDIS_URL"]) if os.getenv("REDIS_URL") else None
 
