@@ -1,0 +1,72 @@
+/* BB Sign 設計 token。數值與設計規範的 tokens.json 一一對應，改一邊就要改另一邊。
+ * Hallmark · genre: atmospheric · theme: custom「破曉起跑」 · vibe: 天亮前起跑、頭燈、跑道線
+ * paper oklch(17% 0.035 268) · accent oklch(87% 0.17 95) sunrise · Big Shoulders Display + Noto Sans TC
+ */
+:root {
+  /* 夜空與表面：越高的層越亮 */
+  --night: oklch(0.17 0.035 268);
+  --night-2: oklch(0.215 0.04 268);
+  --night-3: oklch(0.265 0.045 268);
+  --rule: oklch(0.37 0.04 268);
+  --line: oklch(0.55 0.04 266);
+
+  /* 文字 */
+  --chalk: oklch(0.96 0.01 250);
+  --chalk-2: oklch(0.8 0.03 262);
+  --chalk-3: oklch(0.68 0.035 264);
+
+  /* 晨光：唯一的強調色 */
+  --sunrise: oklch(0.87 0.17 95);
+  --on-sunrise: oklch(0.2 0.04 268);
+
+  /* 運動別與狀態 */
+  --run: oklch(0.72 0.16 255);
+  --bike: oklch(0.82 0.15 165);
+  --tri: oklch(0.77 0.16 55);
+  --urgent: oklch(0.74 0.15 25);
+
+  /* 地圖熱度：賽事越多越亮 */
+  --map-0: oklch(0.33 0.045 266);
+  --map-1: oklch(0.4 0.08 262);
+  --map-2: oklch(0.52 0.12 258);
+  --map-3: oklch(0.64 0.14 255);
+  --map-4: oklch(0.76 0.13 250);
+
+  /* 地平線：依季節篩選變色 */
+  --sky-all: oklch(0.46 0.15 35);
+  --sky-spring: oklch(0.5 0.14 355);
+  --sky-summer: oklch(0.5 0.1 205);
+  --sky-autumn: oklch(0.5 0.12 65);
+  --sky-winter: oklch(0.45 0.08 245);
+
+  --font-display: 'Big Shoulders Display', 'Noto Sans TC', 'Arial Narrow', sans-serif;
+  --font-sans: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  --radius-s: 6px;
+  --radius-m: 12px;
+  --radius-l: 20px;
+  --radius-pill: 999px;
+
+  --shadow-drawer: -24px 0 48px #050817;
+  --shadow-tip: 0 8px 24px #050817;
+}
+
+.t-wordmark { font-family: var(--font-display); font-size: 28px; line-height: 1; font-weight: 800; letter-spacing: 0.04em; }
+.t-date-xl { font-family: var(--font-display); font-size: 64px; line-height: 0.9; font-weight: 800; }
+.t-date-l { font-family: var(--font-display); font-size: 36px; line-height: 0.95; font-weight: 800; }
+.t-figure { font-family: var(--font-display); font-size: 22px; line-height: 1.1; font-weight: 700; }
+.t-headline { font-family: var(--font-sans); font-size: 44px; line-height: 1.15; font-weight: 900; letter-spacing: -0.01em; }
+.t-title-l { font-family: var(--font-sans); font-size: 28px; line-height: 1.25; font-weight: 900; }
+.t-title { font-family: var(--font-sans); font-size: 17px; line-height: 1.45; font-weight: 700; }
+.t-body { font-family: var(--font-sans); font-size: 15px; line-height: 1.65; font-weight: 400; }
+.t-label { font-family: var(--font-sans); font-size: 13px; line-height: 1.4; font-weight: 500; }
+.t-caption { font-family: var(--font-sans); font-size: 12px; line-height: 1.5; font-weight: 400; }

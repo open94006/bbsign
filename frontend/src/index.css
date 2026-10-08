@@ -1,0 +1,202 @@
+/* Hallmark · genre: atmospheric · macrostructure: Map / Diagram · theme: custom「破曉起跑」
+ * paper oklch(17% 0.035 268) · accent oklch(87% 0.17 95) · Big Shoulders Display + Noto Sans TC
+ * 頁面版面。token 在 tokens.css，元件在 components.css（兩者與設計規範同步）。
+ */
+
+* { box-sizing: border-box; }
+
+html,
+body {
+  margin: 0;
+  overflow-x: clip;
+  background: var(--night);
+  color: var(--chalk);
+  font-family: var(--font-sans);
+  color-scheme: dark;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, p { margin: 0; }
+button, input, select { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+:focus-visible { outline: 2px solid var(--sunrise); outline-offset: 2px; }
+
+/* ---------- 首頁：一個畫面高，不捲動 ---------- */
+
+.home {
+  position: relative;
+  display: grid;
+  grid-template-columns: 380px minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'bar map'
+    'panel map'
+    'foot map';
+  column-gap: var(--space-7);
+  height: 100dvh;
+  padding: 0 var(--space-7);
+  overflow: hidden;
+  isolation: isolate;
+}
+.home > .bb-sky { z-index: -1; }
+
+.home-bar {
+  grid-area: bar;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  padding-top: var(--space-6);
+}
+.home-bar .t-caption { color: var(--chalk-3); }
+
+.home-panel {
+  grid-area: panel;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-height: 0;
+  padding-top: var(--space-7);
+}
+.home-panel h1 { text-wrap: balance; }
+.home-lede { color: var(--chalk-2); }
+
+/* 下拉面板對齊整個篩選區的左緣，不跟著按鈕位置跑出畫面 */
+.filters { position: relative; display: grid; gap: var(--space-3); }
+.filters .bb-menu { position: static; }
+.menu-group { display: grid; gap: var(--space-2); }
+.menu-group .t-caption { color: var(--chalk-3); }
+
+/* 最近可報名的比賽：佔滿剩下的高度，放不下的整列換到看不見的第二欄，不會半截或壓到按鈕 */
+.home-next { display: flex; flex: 1 1 0; flex-direction: column; gap: var(--space-1); min-height: 0; }
+.home-next h2 { color: var(--chalk-3); }
+.home-next ul {
+  display: flex;
+  flex: 1 1 0;
+  flex-flow: column wrap;
+  align-content: flex-start;
+  min-height: 0;
+  margin: 0 calc(var(--space-3) * -1);
+  padding: 0;
+  overflow: hidden;
+  list-style: none;
+}
+.home-next .bb-race { width: 100%; border-bottom: 0; }
+.home-next .bb-race__head {
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-m);
+}
+.home-next .t-date-l { font-size: 30px; }
+.home-next .bb-race__name { -webkit-line-clamp: 1; }
+
+.home-actions { display: flex; align-items: center; gap: var(--space-4); }
+
+.home-map {
+  grid-area: map;
+  display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  min-height: 0;
+  padding: var(--space-5) 0;
+}
+.map {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transition: transform var(--dur-long) var(--ease-out);
+}
+
+.map-inset rect { stroke: var(--line); stroke-dasharray: 4 3; }
+.map-inset path { fill: var(--night); stroke: none; }
+.map-inset text { fill: var(--chalk-3); stroke: none; font: 500 11px var(--font-sans); }
+
+.home-foot {
+  grid-area: foot;
+  max-width: 380px;
+  padding: var(--space-4) 0 var(--space-5);
+  color: var(--chalk-3);
+}
+
+/* 選單開著時，地圖往左讓位；位移量 --shift 由 App 依版面算出 */
+@media (min-width: 860px) {
+  .home[data-drawer='true'] .map { transform: translateX(calc(var(--shift, 0px) * -1)); }
+}
+
+/* 矮螢幕：先收掉「最近可報名的比賽」，再收掉說明 */
+@media (max-height: 700px) {
+  .home-next { display: none; }
+}
+@media (max-height: 620px) {
+  .home-lede { display: none; }
+  .home-panel { padding-top: var(--space-5); }
+}
+
+/* ---------- 手機 ---------- */
+
+@media (max-width: 859px) {
+  .home {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+    grid-template-areas: 'bar' 'headline' 'filters' 'map' 'actions';
+    row-gap: var(--space-3);
+    padding: 0 var(--space-4);
+  }
+  .home-bar { padding-top: var(--space-4); }
+  .home-panel { display: contents; }
+  .home-panel h1 { grid-area: headline; font-size: 24px; }
+  .home-panel h1 br { display: none; }
+  .home-lede,
+  .home-next,
+  .home-foot { display: none; }
+  .filters { grid-area: filters; display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .filters > .bb-chips { display: contents; }
+  .bb-search input { font-size: 16px; } /* 小於 16px，iOS 聚焦時會放大頁面 */
+  .home-map { padding: 0; }
+  .home-actions { grid-area: actions; padding-bottom: var(--space-4); }
+  .home-actions .bb-btn:not(.bb-btn--quiet) { flex: 1; }
+}
+
+/* ---------- 管理頁（一般捲動頁面） ---------- */
+
+.admin {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--space-5) var(--space-4) var(--space-8);
+}
+.admin h1 { font-size: 24px; font-weight: 900; }
+.admin-head { display: flex; align-items: center; gap: var(--space-4); }
+.admin-head h1 { margin-right: auto; }
+.admin-login { display: grid; gap: var(--space-3); max-width: 320px; margin-top: var(--space-5); }
+.admin-note { margin: var(--space-3) 0; color: var(--chalk-2); font-size: 14px; }
+.admin input:not([type='checkbox']),
+.admin select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  background: var(--night-2);
+}
+.admin label { display: grid; gap: var(--space-1); font-size: 14px; }
+.admin-search { max-width: 360px; margin-bottom: var(--space-3); }
+.admin-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.admin-table th,
+.admin-table td { padding: var(--space-2); border-bottom: 1px solid var(--rule); text-align: left; vertical-align: top; }
+.admin-table th { color: var(--chalk-3); font-weight: 500; }
+.admin-table .muted td { color: var(--chalk-3); }
+.admin-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); }
+.admin-form h1,
+.admin-form .wide { grid-column: 1 / -1; }
+.admin-form fieldset { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); border: 1px solid var(--rule); border-radius: var(--radius-s); }
+.admin .check { display: flex; align-items: center; gap: 6px; }
+.admin-actions { display: flex; gap: var(--space-3); }
+.error { color: var(--urgent); }
+
+@media (max-width: 859px) {
+  .admin-form { grid-template-columns: minmax(0, 1fr); }
+  .admin-table { display: block; overflow-x: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map { transition: none; }
+}

@@ -1,0 +1,913 @@
+/* BB Sign 元件樣式。設計規範的 components/bundle.css 是這份檔案的副本。
+ * 只用 tokens.css 的 token，不寫死顏色。
+ */
+:root {
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+    --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+    --dur-micro: 120ms;
+    --dur-short: 220ms;
+    --dur-long: 420ms;
+    --dur-sky: 900ms;
+}
+
+[data-sport='路跑'] {
+    --sport-c: var(--run);
+}
+[data-sport='自行車'] {
+    --sport-c: var(--bike);
+}
+[data-sport='三鐵'] {
+    --sport-c: var(--tri);
+}
+
+/* ---------- 天空背景：季節換地平線顏色，游標是頭燈 ---------- */
+
+@property --horizon {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: #9a2c0f;
+}
+
+.bb-sky {
+    --horizon: var(--sky-all);
+    --mx: 50%;
+    --my: 110%;
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    background: linear-gradient(to top, var(--horizon), var(--night) 62%);
+    transition: --horizon var(--dur-sky) var(--ease-in-out);
+}
+
+.bb-sky[data-season='春'] {
+    --horizon: var(--sky-spring);
+}
+.bb-sky[data-season='夏'] {
+    --horizon: var(--sky-summer);
+}
+.bb-sky[data-season='秋'] {
+    --horizon: var(--sky-autumn);
+}
+.bb-sky[data-season='冬'] {
+    --horizon: var(--sky-winter);
+}
+
+/* 天亮前的星星：兩層錯開閃爍 */
+.bb-sky__stars,
+.bb-sky__stars::after {
+    position: absolute;
+    inset: 0 0 45% 0;
+    background-image:
+        radial-gradient(1.5px 1.5px at 24px 36px, var(--chalk), transparent), radial-gradient(1px 1px at 132px 92px, var(--chalk), transparent),
+        radial-gradient(1.5px 1.5px at 188px 18px, var(--chalk-2), transparent), radial-gradient(1px 1px at 72px 140px, var(--chalk-2), transparent);
+    background-size: 230px 170px;
+    -webkit-mask-image: linear-gradient(to bottom, #000, transparent);
+    mask-image: linear-gradient(to bottom, #000, transparent);
+    animation: bb-twinkle 7s var(--ease-in-out) infinite alternate;
+}
+.bb-sky__stars::after {
+    content: '';
+    inset: 0;
+    background-position: 115px 60px;
+    background-size: 310px 210px;
+    animation-delay: -3.5s;
+}
+@keyframes bb-twinkle {
+    from {
+        opacity: 0.15;
+    }
+    to {
+        opacity: 0.6;
+    }
+}
+
+/* 地平線下的太陽：12 秒一次的緩慢呼吸 */
+.bb-sky__sun {
+    position: absolute;
+    bottom: -35vh;
+    left: 50%;
+    width: 140vmax;
+    height: 70vh;
+    background: radial-gradient(closest-side, var(--sunrise), transparent);
+    opacity: 0.1;
+    transform: translateX(-50%);
+    animation: bb-sunrise 12s var(--ease-in-out) infinite alternate;
+}
+@keyframes bb-sunrise {
+    from {
+        opacity: 0.06;
+        transform: translateX(-50%) scale(1);
+    }
+    to {
+        opacity: 0.16;
+        transform: translateX(-50%) scale(1.06);
+    }
+}
+
+/* 頭燈的光 */
+.bb-sky::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle 320px at var(--mx) var(--my), var(--chalk), transparent 70%);
+    opacity: 0.07;
+}
+
+/* 頭燈照到的跑道線 */
+.bb-sky::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(100deg, transparent 0 47px, var(--chalk-3) 47px 48px);
+    opacity: 0.4;
+    -webkit-mask-image: radial-gradient(circle 240px at var(--mx) var(--my), #000, transparent 75%);
+    mask-image: radial-gradient(circle 240px at var(--mx) var(--my), #000, transparent 75%);
+}
+
+@media (hover: none) {
+    .bb-sky::before,
+    .bb-sky::after {
+        display: none;
+    }
+}
+
+/* ---------- 按鈕 ---------- */
+
+.bb-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    min-height: 44px;
+    padding: 0 var(--space-5);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--chalk);
+    font: 700 15px/1 var(--font-sans);
+    white-space: nowrap;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+        transform var(--dur-micro) var(--ease-out),
+        background-color var(--dur-micro) var(--ease-out),
+        border-color var(--dur-micro) var(--ease-out);
+}
+
+.bb-btn:hover {
+    border-color: var(--chalk);
+    transform: translateY(-1px);
+}
+.bb-btn:active {
+    transform: translateY(0);
+}
+.bb-btn:focus-visible {
+    outline: 2px solid var(--sunrise);
+    outline-offset: 3px;
+}
+.bb-btn:disabled,
+.bb-btn[aria-disabled='true'] {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+}
+.bb-btn[aria-busy='true'] {
+    cursor: progress;
+}
+
+.bb-btn--primary {
+    border-color: var(--sunrise);
+    background: var(--sunrise);
+    color: var(--on-sunrise);
+}
+.bb-btn--primary:hover {
+    border-color: var(--chalk);
+    background: var(--chalk);
+}
+.bb-btn--primary:focus-visible {
+    outline-color: var(--chalk);
+}
+
+.bb-btn--quiet {
+    min-height: 32px;
+    padding: 0;
+    border: 0;
+    color: var(--chalk-2);
+    font-weight: 500;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+.bb-btn--quiet:hover {
+    color: var(--chalk);
+    transform: none;
+}
+
+.bb-icon-btn {
+    display: inline-grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--chalk);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    transition:
+        transform var(--dur-micro) var(--ease-out),
+        border-color var(--dur-micro) var(--ease-out);
+}
+.bb-icon-btn:hover {
+    border-color: var(--chalk);
+    transform: translateY(-1px);
+}
+.bb-icon-btn:active {
+    transform: translateY(0);
+}
+.bb-icon-btn--close {
+    transition-duration: var(--dur-long), var(--dur-micro);
+} /* 轉動放慢，外框顏色照舊 */
+.bb-icon-btn--close:hover {
+    transform: rotate(90deg);
+}
+.bb-icon-btn--s {
+    width: 34px;
+    height: 34px;
+}
+.bb-icon-btn svg {
+    width: 18px;
+    height: 18px;
+}
+.bb-icon-btn[data-done='true'] {
+    border-color: var(--bike);
+    color: var(--bike);
+}
+.bb-icon-btn:focus-visible {
+    outline: 2px solid var(--sunrise);
+    outline-offset: 3px;
+}
+
+/* ---------- 篩選按鈕 ---------- */
+
+.bb-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 34px;
+    padding: 0 14px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-pill);
+    background: var(--night);
+    color: var(--chalk-2);
+    font: 500 13px/1 var(--font-sans);
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+        background-color var(--dur-micro) var(--ease-out),
+        color var(--dur-micro) var(--ease-out),
+        border-color var(--dur-micro) var(--ease-out);
+}
+.bb-chip:hover {
+    border-color: var(--chalk-2);
+    color: var(--chalk);
+}
+.bb-chip:focus-visible {
+    outline: 2px solid var(--sunrise);
+    outline-offset: 2px;
+}
+.bb-chip:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+.bb-chip[aria-pressed='true'] {
+    border-color: var(--chalk);
+    background: var(--chalk);
+    color: var(--night);
+}
+.bb-chip[data-sport]::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    background: var(--sport-c);
+}
+.bb-chip[data-sport][aria-pressed='true'] {
+    border-color: var(--sport-c);
+    background: var(--sport-c);
+}
+.bb-chip[data-sport][aria-pressed='true']::before {
+    background: var(--night);
+}
+
+.bb-search {
+    width: 100%;
+}
+.bb-search input {
+    width: 100%;
+    min-height: 38px;
+    padding: 0 16px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-pill);
+    background: var(--night);
+    color: var(--chalk);
+    font: 400 14px/1 var(--font-sans);
+    transition: border-color var(--dur-micro) var(--ease-out);
+}
+.bb-search input::placeholder {
+    color: var(--chalk-3);
+}
+.bb-search input:hover {
+    border-color: var(--chalk-2);
+}
+.bb-search input:focus-visible {
+    outline: 2px solid var(--sunrise);
+    outline-offset: 2px;
+}
+
+.bb-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+/* 下拉選單：用原生 <details> */
+.bb-menu {
+    position: relative;
+}
+.bb-menu > summary {
+    list-style: none;
+}
+.bb-menu > summary::-webkit-details-marker {
+    display: none;
+}
+.bb-menu > summary::after {
+    content: '▾';
+    font-size: 11px;
+}
+.bb-menu[open] > summary {
+    border-color: var(--chalk);
+    color: var(--chalk);
+}
+.bb-menu__panel {
+    position: absolute;
+    z-index: 5;
+    top: calc(100% + var(--space-2));
+    left: 0;
+    display: grid;
+    gap: var(--space-3);
+    width: max-content;
+    max-width: min(340px, calc(100vw - 32px));
+    padding: var(--space-4);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius-m);
+    background: var(--night-2);
+}
+
+/* ---------- 圖片區塊：賽事主視覺 ---------- */
+
+.bb-visual {
+    position: relative;
+    isolation: isolate;
+    aspect-ratio: 2 / 1;
+    max-width: 100%;
+    overflow: hidden;
+    border-radius: var(--radius-m);
+    background: linear-gradient(120deg, var(--night-3) 30%, var(--sport-c, var(--run)));
+}
+.bb-visual::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: repeating-linear-gradient(100deg, transparent 0 22px, var(--night) 22px 24px);
+    opacity: 0.35;
+}
+.bb-visual img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+/* 有主視覺時整塊可點，開啟完整圖片 */
+.bb-visual--zoom {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    cursor: zoom-in;
+}
+.bb-visual--zoom:focus-visible {
+    outline: 2px solid var(--sunrise);
+    outline-offset: 3px;
+}
+.bb-visual__hint {
+    position: absolute;
+    right: var(--space-2);
+    bottom: var(--space-2);
+    padding: 2px var(--space-2);
+    border-radius: var(--radius-pill);
+    background: var(--night);
+    color: var(--chalk);
+    opacity: 0;
+    transition: opacity var(--dur-short) var(--ease-out);
+}
+.bb-visual--zoom:hover .bb-visual__hint,
+.bb-visual--zoom:focus-visible .bb-visual__hint {
+    opacity: 0.9;
+}
+
+/* 完整主視覺彈窗：鋪滿畫面，任何點擊、滾輪、左右鍵都關閉 */
+.bb-lightbox {
+    width: 100vw;
+    max-width: none;
+    height: 100dvh;
+    max-height: none;
+    margin: 0;
+    padding: var(--space-4);
+    border: 0;
+    background: transparent;
+    color: var(--chalk-2);
+    cursor: zoom-out;
+}
+.bb-lightbox[open] {
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: var(--space-3);
+}
+.bb-lightbox::backdrop {
+    background: var(--night);
+    opacity: 0.92;
+}
+.bb-lightbox img {
+    display: block;
+    max-width: min(1400px, calc(100vw - 32px));
+    max-height: calc(100dvh - 72px);
+    border-radius: var(--radius-m);
+    object-fit: contain;
+    animation: bb-pop var(--dur-short) var(--ease-out);
+}
+@keyframes bb-pop {
+    from {
+        opacity: 0;
+        transform: scale(0.96);
+    }
+}
+
+.bb-visual__label {
+    position: absolute;
+    top: var(--space-3);
+    left: var(--space-3);
+    display: flex;
+    gap: var(--space-2);
+    color: var(--chalk);
+}
+.bb-visual__num {
+    position: absolute;
+    right: var(--space-3);
+    bottom: -0.14em;
+    color: transparent;
+    font: 800 88px/1 var(--font-display);
+    -webkit-text-stroke: 1.5px var(--chalk);
+    white-space: nowrap;
+}
+
+/* ---------- 賽事選單列 ---------- */
+
+.bb-race {
+    border-bottom: 1px solid var(--rule);
+}
+
+.bb-race__head {
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: var(--space-5);
+    width: 100%;
+    padding: var(--space-4) var(--space-5);
+    border: 0;
+    background: transparent;
+    color: var(--chalk);
+    text-align: left;
+    cursor: pointer;
+    transition: background-color var(--dur-short) var(--ease-out);
+}
+.bb-race__head:hover,
+.bb-race[data-open='true'] .bb-race__head {
+    background: var(--night-3);
+}
+.bb-race__head:focus-visible {
+    outline: 2px solid var(--sunrise);
+    outline-offset: -2px;
+}
+
+.bb-race__date {
+    display: grid;
+    justify-items: start;
+    gap: 2px;
+    color: var(--chalk);
+    transition: transform var(--dur-short) var(--ease-out);
+}
+.bb-race__head:hover .bb-race__date {
+    transform: translateX(4px);
+}
+.bb-race__date i {
+    font-style: normal;
+    color: var(--sport-c, var(--chalk-3));
+}
+.bb-race__date .t-caption {
+    color: var(--chalk-3);
+}
+
+.bb-race__main {
+    display: grid;
+    gap: var(--space-1);
+    min-width: 0;
+}
+.bb-race__name {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+.bb-race__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1) var(--space-3);
+    color: var(--chalk-2);
+}
+
+.bb-sport {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.bb-sport::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    background: var(--sport-c, var(--chalk-3));
+}
+
+/* 距離徽章：同一運動色系，最長的距離實心 */
+.bb-dists {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+}
+.bb-dist {
+    padding: 1px 7px;
+    border-radius: var(--radius-s);
+    background: color-mix(in oklch, var(--sport-c, var(--chalk-3)) 14%, transparent);
+    color: var(--sport-c, var(--chalk-2));
+    font: 700 14px/1.4 var(--font-display);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+.bb-dist:first-child {
+    background: var(--sport-c, var(--chalk-3));
+    color: var(--night);
+}
+
+/* 地點：地址、Google 地圖、複製 */
+.bb-venue {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+.bb-venue__text {
+    flex: 1;
+    min-width: 0;
+    color: var(--chalk-2);
+}
+
+/* 第三行：報名狀態 */
+.bb-race__status {
+    display: flex;
+    align-items: center;
+    min-height: 26px;
+    color: var(--chalk-2);
+}
+.bb-status--soon {
+    color: var(--sunrise);
+}
+.bb-status--closed {
+    color: var(--chalk-3);
+}
+
+
+/* 已截止的賽事：標題列整列轉灰，運動色也一起褪掉 */
+.bb-race[data-closed] .bb-race__head {
+    --sport-c: var(--chalk-3);
+    color: var(--chalk-3);
+}
+.bb-race[data-closed] .bb-race__meta {
+    color: var(--chalk-3);
+}
+
+/* 倒數計時：列表上的精簡版（30 天內） */
+.bb-chipcount {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 1px 8px;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius-pill);
+    color: var(--chalk);
+    white-space: nowrap;
+}
+.bb-chipcount__label {
+    color: var(--chalk-3);
+}
+.bb-chipcount__num {
+    font: 700 15px/1.4 var(--font-display);
+    letter-spacing: 0.03em;
+    font-variant-numeric: tabular-nums;
+}
+.bb-chipcount__num small {
+    margin-left: 1px;
+    font: 500 11px/1 var(--font-sans);
+}
+.bb-chipcount[data-urgent='true'] {
+    border-color: color-mix(in oklch, var(--urgent) 55%, transparent);
+    color: var(--urgent);
+}
+.bb-race[data-closed] .bb-chipcount {
+    color: var(--chalk-3);
+}
+
+/* 倒數計時：展開版，四格大數字 */
+.bb-count {
+    display: grid;
+    gap: var(--space-2);
+}
+.bb-count__head {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-3);
+    color: var(--chalk-2);
+}
+.bb-count__until {
+    color: var(--chalk-3);
+}
+.bb-count__cells {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-2);
+}
+.bb-count__cell {
+    display: grid;
+    justify-items: center;
+    gap: 2px;
+    padding: var(--space-2) 0 var(--space-1);
+    border: 1px solid var(--rule);
+    border-top: 2px solid var(--sport-c, var(--chalk-3));
+    border-radius: var(--radius-s);
+    background: var(--night-2);
+}
+.bb-count__cell .t-caption {
+    color: var(--chalk-3);
+}
+.bb-count__num {
+    font: 800 36px/1 var(--font-display);
+    font-variant-numeric: tabular-nums;
+    color: var(--chalk);
+}
+.bb-count[data-urgent='true'] .bb-count__num,
+.bb-count[data-urgent='true'] .bb-count__head > span:first-child {
+    color: var(--urgent);
+}
+.bb-count--done {
+    margin: 0;
+    padding: var(--space-3);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius-s);
+    color: var(--chalk-2);
+    text-align: center;
+}
+
+.bb-race__body {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows var(--dur-long) var(--ease-in-out);
+}
+.bb-race[data-open='true'] .bb-race__body {
+    grid-template-rows: 1fr;
+}
+.bb-race__body > div {
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* ---------- 賽事詳細卡（展開後） ---------- */
+
+.bb-detail {
+    display: grid;
+    gap: var(--space-4);
+    padding: var(--space-2) var(--space-5) var(--space-5);
+    background: var(--night-3);
+}
+
+.bb-facts {
+    display: grid;
+    gap: var(--space-2);
+    margin: 0;
+}
+.bb-facts > div {
+    display: grid;
+    grid-template-columns: 4.5em minmax(0, 1fr);
+    gap: var(--space-3);
+}
+.bb-facts dt {
+    color: var(--chalk-3);
+}
+.bb-facts dd {
+    margin: 0;
+    color: var(--chalk);
+}
+.bb-facts .t-figure {
+    font-size: 18px;
+}
+
+.bb-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.bb-tags li {
+    padding: 2px var(--space-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-s);
+    color: var(--chalk-2);
+}
+
+.bb-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+.bb-source {
+    margin: 0;
+    color: var(--chalk-3);
+}
+
+/* ---------- 右側賽事選單 ---------- */
+
+.bb-drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    width: min(460px, 100vw);
+    border-left: 1px solid var(--rule);
+    background: var(--night-2);
+    box-shadow: var(--shadow-drawer);
+    transform: translateX(100%);
+    visibility: hidden;
+    transition:
+        transform calc(var(--dur-long) * 0.75) var(--ease-in),
+        visibility 0s linear calc(var(--dur-long) * 0.75);
+}
+.bb-drawer[data-open='true'] {
+    transform: none;
+    visibility: visible;
+    transition: transform var(--dur-long) var(--ease-out);
+}
+.bb-drawer__head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: var(--space-3);
+    padding: var(--space-5) var(--space-5) var(--space-4);
+    border-bottom: 1px solid var(--rule);
+}
+.bb-drawer__head p {
+    margin: var(--space-1) 0 0;
+    color: var(--chalk-2);
+}
+.bb-drawer__list {
+    flex: 1;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    list-style: none;
+}
+.bb-drawer__empty {
+    display: grid;
+    gap: var(--space-3);
+    justify-items: start;
+    padding: var(--space-5);
+    color: var(--chalk-2);
+}
+
+/* ---------- 地圖與游標提示 ---------- */
+
+.bb-county {
+    fill: var(--map-0);
+    stroke: var(--night);
+    stroke-width: 0.8;
+    cursor: pointer;
+    transform-box: fill-box;
+    transform-origin: center;
+    transition:
+        fill var(--dur-short) var(--ease-out),
+        transform var(--dur-short) var(--ease-out);
+}
+.bb-county[data-level='1'] {
+    fill: var(--map-1);
+}
+.bb-county[data-level='2'] {
+    fill: var(--map-2);
+}
+.bb-county[data-level='3'] {
+    fill: var(--map-3);
+}
+.bb-county[data-level='4'] {
+    fill: var(--map-4);
+}
+/* 瀏覽器預設的方形外框不要；鍵盤聚焦改用下面的白色描邊標示 */
+.bb-county:focus {
+    outline: none;
+}
+.bb-county:hover,
+.bb-county:focus-visible {
+    stroke: var(--chalk);
+    stroke-width: 1.2;
+    transform: translateY(-3px) scale(1.03);
+}
+.bb-county[aria-pressed='true'] {
+    fill: var(--sunrise);
+    stroke: var(--chalk);
+    stroke-width: 1.2;
+}
+
+.bb-tip {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 30;
+    display: grid;
+    gap: 2px;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-m);
+    background: var(--chalk);
+    color: var(--night);
+    box-shadow: var(--shadow-tip);
+    pointer-events: none;
+}
+.bb-tip .t-figure {
+    line-height: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .bb-sky {
+        transition-duration: 150ms;
+    }
+    .bb-sky__stars,
+    .bb-sky__stars::after,
+    .bb-sky__sun,
+    .bb-lightbox img {
+        animation: none;
+    }
+    .bb-btn,
+    .bb-icon-btn,
+    .bb-chip,
+    .bb-race__head,
+    .bb-race__date,
+    .bb-race__body,
+    .bb-county,
+    .bb-visual__hint {
+        transition-duration: 1ms;
+    }
+    .bb-btn:hover,
+    .bb-icon-btn:hover,
+    .bb-icon-btn--close:hover,
+    .bb-race__head:hover .bb-race__date,
+    .bb-county:hover,
+    .bb-county:focus-visible {
+        transform: none;
+    }
+    .bb-drawer,
+    .bb-drawer[data-open='true'] {
+        transition:
+            opacity 150ms linear,
+            visibility 0s linear 150ms;
+        transform: none;
+        opacity: 0;
+    }
+    .bb-drawer[data-open='true'] {
+        opacity: 1;
+        transition: opacity 150ms linear;
+    }
+}
