@@ -89,7 +89,7 @@ PROJECT=你的專案ID DATABASE_URL='postgresql://…-pooler…' REDIS_URL='redi
 
 ### push 自動部署（Cloud Build）
 
-[cloudbuild.yaml](cloudbuild.yaml) 會建置映像檔，並部署網站服務與爬蟲 Job。爬蟲不排程，改由管理頁的「只抓新賽事／完整更新」按鈕啟動。
+[cloudbuild.yaml](cloudbuild.yaml) 會建置映像檔，並部署網站服務與爬蟲 Job。也會建立兩個排程：每 3 天抓一次新賽事、每週一完整更新未截止的賽事。管理頁的「只抓新賽事／完整更新」按鈕可以隨時手動啟動。
 
 一次性設定：
 

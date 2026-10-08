@@ -1,5 +1,5 @@
 # push 到 main → Cloud Build 觸發：建置映像檔 → 部署網站服務與爬蟲 Job（共用同一個映像檔）
-# 爬蟲目前由管理頁按鈕手動啟動，沒有排程。觸發條件要指定這個檔案（見 README）。
+# 爬蟲：每 3 天抓新賽事、每週一完整更新，管理頁也能手動啟動。觸發條件要指定這個檔案（見 README）。
 substitutions:
   _REGION: asia-east1
   _IMAGE: ${_REGION}-docker.pkg.dev/${PROJECT_ID}/cloud-run-source-deploy/bbsign:${COMMIT_SHA}
@@ -25,3 +25,18 @@ steps:
         gcloud run jobs deploy bbsign-crawl --image $_IMAGE --region $_REGION \
           --command python --args=-m,crawl.run --task-timeout 30m --max-retries 0 \
           --set-secrets DATABASE_URL=BBSIGN_DATABASE_URL:latest,REDIS_URL=UPSTASH_REDIS_URL:latest,ANTHROPIC_API_KEY=BBSIGN_ANTHROPIC_API_KEY:latest
+        # 排程：已存在就更新，不存在就建立（管理頁也能手動啟動）
+        JOB_URI=https://run.googleapis.com/v2/projects/$PROJECT_ID/locations/$_REGION/jobs/bbsign-crawl:run
+        SA=$PROJECT_NUMBER-compute@developer.gserviceaccount.com  # Job 與排程共用 Compute 預設服務帳戶
+        schedule() {
+          name=$$1; shift
+          op=create
+          gcloud scheduler jobs describe $$name --location $_REGION >/dev/null 2>&1 && op=update
+          gcloud scheduler jobs $$op http $$name --location $_REGION --time-zone Asia/Taipei \
+            --http-method POST --uri $$JOB_URI --oauth-service-account-email $$SA "$$@"
+        }
+        # 每 3 天凌晨 3 點：只抓資料庫還沒有的新賽事（每月 1、4、7…日，月底到月初可能只隔 1–2 天）
+        schedule bbsign-crawl-new --schedule "0 3 */3 * *" \
+          --message-body '{"overrides":{"containerOverrides":[{"args":["-m","crawl.run","--new"]}]}}'
+        # 每週一凌晨 4 點：完整更新所有未截止的賽事（內容有變才重抽）
+        schedule bbsign-crawl-weekly --schedule "0 4 * * 1"
