@@ -86,7 +86,7 @@ def crawl(names: list[str], today: date, new_only: bool = False) -> None:
             except Exception as e:  # 整站失敗（改版、擋爬）不影響其他站
                 print(f"[{name}] 清單抓取失敗：{e!r}", file=sys.stderr)
             print(f"[{name}] 更新 {changed} 筆，失敗 {failed} 筆", file=sys.stderr)
-    db.clear_cache()
+            db.clear_cache()  # 每站跑完就清，前台不用等全部來源跑完（第一次爬可能要很久）
 
 
 if __name__ == "__main__":
