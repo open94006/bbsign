@@ -91,11 +91,13 @@ PROJECT=你的專案ID DATABASE_URL='postgresql://…-pooler…' REDIS_URL='redi
 
 [cloudbuild.yaml](cloudbuild.yaml) 會建置映像檔，並部署網站服務與爬蟲 Job。爬蟲不排程，改由管理頁的「只抓新賽事／完整更新」按鈕啟動。
 
-一次性設定（機密與服務帳戶 `bbsign` 要先存在，可以先跑一次 `deploy.sh`）：
+一次性設定：
 
-1. 到 Cloud Build → 觸發條件 → 連結 GitHub `open94006/bbsign`，建立觸發條件：事件選「推送至分支」，分支填 `^main$`，設定檔選 `cloudbuild.yaml`。
-2. 給觸發條件使用的服務帳戶這些角色：`Cloud Run 管理員`、`服務帳戶使用者`、`Artifact Registry 寫入者`、`記錄寫入者`。
-3. 映像檔放在 Artifact Registry 的 `cloud-run-source-deploy`。跑過 `deploy.sh` 就已經有了；沒有的話先建立：
+1. 在 Cloud Run 主控台替服務 `bbsign` 設定 `ADMIN_TOKEN`，以及從 Secret Manager 帶入的 `DATABASE_URL`、`REDIS_URL`。爬蟲 Job 用的機密名稱寫在 `cloudbuild.yaml`（`BBSIGN_DATABASE_URL`、`UPSTASH_REDIS_URL`、`BBSIGN_ANTHROPIC_API_KEY`）。
+2. Cloud Build 觸發條件的設定檔要選 `cloudbuild.yaml`。從 Cloud Run 主控台「持續部署」建立的觸發條件預設是內嵌設定，只會換映像檔，要改成這個檔案：
+   `gcloud builds triggers update github <觸發條件名稱> --build-config=cloudbuild.yaml`
+3. 服務、Job 與建置都用 Compute 預設服務帳戶，它需要 `Cloud Run 管理員`、`服務帳戶使用者`、`Artifact Registry 寫入者`、`Secret Manager 存取者`。
+4. 映像檔放在 Artifact Registry 的 `cloud-run-source-deploy`，沒有的話先建立：
 
 ```bash
 gcloud artifacts repositories create cloud-run-source-deploy --repository-format docker --location asia-east1
