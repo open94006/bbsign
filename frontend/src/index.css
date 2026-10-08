@@ -94,6 +94,7 @@ button, input, select { font: inherit; color: inherit; }
 .home-actions { display: flex; align-items: center; gap: var(--space-4); }
 
 .home-map {
+  position: relative;
   grid-area: map;
   display: grid;
   grid-template: minmax(0, 1fr) / minmax(0, 1fr);
@@ -107,6 +108,7 @@ button, input, select { font: inherit; color: inherit; }
   transition: transform var(--dur-long) var(--ease-out);
 }
 
+.map { touch-action: none; } /* 手指在地圖上滑動是選縣市，不捲動頁面 */
 .map-inset rect { stroke: var(--line); stroke-dasharray: 4 3; }
 .map-inset path { fill: var(--night); stroke: none; }
 .map-inset text { fill: var(--chalk-3); stroke: none; font: 500 11px var(--font-sans); }
@@ -149,8 +151,7 @@ button, input, select { font: inherit; color: inherit; }
   .home-lede,
   .home-next,
   .home-foot { display: none; }
-  .filters { grid-area: filters; display: flex; flex-wrap: wrap; gap: var(--space-2); }
-  .filters > .bb-chips { display: contents; }
+  .filters { grid-area: filters; gap: var(--space-2); }
   .bb-search input { font-size: 16px; } /* 小於 16px，iOS 聚焦時會放大頁面 */
   .home-map { padding: 0; }
   .home-actions { grid-area: actions; padding-bottom: var(--space-4); }

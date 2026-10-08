@@ -51,12 +51,22 @@ type Props = { counts: Record<string, number>; selected: string | null; onSelect
 // 設計規範 MapCounty：亮度代表賽事數，游標停留時縣市浮起，提示跟著游標
 export default function TaiwanMap({ counts, selected, onSelect }: Props) {
   const [hover, setHover] = useState<string | null>(null)
+
+  const [touch, setTouch] = useState(false)
   const tip = useRef<HTMLDivElement>(null)
 
   // 用整張地圖的指標事件判斷游標下是哪個縣市：縣市本身會被重新排序（浮起），
   // 逐一監聽縣市的進出會漏掉「離開」，提示就會卡在畫面上
   const track = (e: PointerEvent) => {
-    if (e.pointerType !== 'mouse') return
+    if (e.pointerType !== 'mouse') {
+      // 觸控：手指滑到哪個縣市就顯示哪個（觸控會鎖定在按下的元素，所以用座標找），
+      // 滑出地圖時保留最後一個，小縣市才點得到
+      setTouch(true)
+      const name = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-county]')?.getAttribute('data-county') ?? null
+      if (name || e.type === 'pointerdown') setHover(name)
+      return
+    }
+    setTouch(false)
     if (tip.current) tip.current.style.transform = `translate(${e.clientX + 16}px, ${e.clientY + 16}px)`
     setHover((e.target as Element).closest('[data-county]')?.getAttribute('data-county') ?? null)
   }
@@ -72,7 +82,7 @@ export default function TaiwanMap({ counts, selected, onSelect }: Props) {
 
   return (
     <>
-      <svg className="map" viewBox={`0 0 ${W} ${H}`} role="group" aria-label="台灣縣市地圖，點選縣市查看賽事" onPointerMove={track} onPointerOver={track} onPointerLeave={() => setHover(null)}>
+      <svg className="map" viewBox={`0 0 ${W} ${H}`} role="group" aria-label="台灣縣市地圖，點選縣市查看賽事" onPointerDown={track} onPointerMove={track} onPointerOver={track} onPointerLeave={(e) => e.pointerType === 'mouse' && setHover(null)}>
         {order.map(({ name, d, box }) => {
           const n = counts[name] ?? 0
           const props = {
@@ -83,7 +93,9 @@ export default function TaiwanMap({ counts, selected, onSelect }: Props) {
             'aria-pressed': selected === name,
             'aria-label': `${name}，${n} 場賽事`,
             'data-county': name,
+            'data-hover': touch && hover === name,
             onClick: () => {
+              if (touch) return // 觸控要按提示上的「詳細」才開選單
               setHover(null) // 點下去地圖會移動，提示不該留在原地
               onSelect(name)
             },
@@ -102,10 +114,27 @@ export default function TaiwanMap({ counts, selected, onSelect }: Props) {
           )
         })}
       </svg>
-      <div ref={tip} className="bb-tip" hidden={!hover} aria-hidden="true">
-        <span className="t-label">{hover}</span>
-        <span className="t-figure">{hover ? (counts[hover] ?? 0) : 0} 場</span>
-      </div>
+      {touch ? (
+        <div className="bb-tip bb-tip--touch" hidden={!hover}>
+          <span className="t-label">{hover}</span>
+          <button
+            type="button"
+            className="bb-btn"
+            onClick={() => {
+              if (hover) onSelect(hover)
+              setHover(null)
+            }}
+          >
+            詳細
+          </button>
+          <span className="t-figure">{hover ? (counts[hover] ?? 0) : 0} 場</span>
+        </div>
+      ) : (
+        <div ref={tip} className="bb-tip" hidden={!hover} aria-hidden="true">
+          <span className="t-label">{hover}</span>
+          <span className="t-figure">{hover ? (counts[hover] ?? 0) : 0} 場</span>
+        </div>
+      )}
     </>
   )
 }

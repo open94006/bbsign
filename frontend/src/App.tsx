@@ -103,7 +103,7 @@ export default function App() {
 
       <header className="home-bar">
         <span className="t-wordmark">BB SIGN</span>
-        <span className="t-caption">台灣賽事報名資訊，每天更新</span>
+        <span className="t-caption">比比賽・國內賽事報名資訊平台</span>
       </header>
 
       <section className="home-panel" aria-labelledby="headline">

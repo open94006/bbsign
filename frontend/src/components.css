@@ -841,6 +841,7 @@
     outline: none;
 }
 .bb-county:hover,
+.bb-county[data-hover='true'],
 .bb-county:focus-visible {
     stroke: var(--chalk);
     stroke-width: 1.2;
@@ -868,6 +869,21 @@
 }
 .bb-tip .t-figure {
     line-height: 1;
+}
+/* 觸控：提示固定在地圖左下角，按「詳細」才開選單 */
+.bb-tip--touch {
+    position: absolute;
+    top: auto;
+    bottom: var(--space-3);
+    grid-template-columns: auto auto;
+    align-items: center;
+    column-gap: var(--space-4);
+    pointer-events: auto;
+}
+.bb-tip--touch .bb-btn {
+    grid-row: span 2;
+    border-color: var(--night);
+    color: var(--night);
 }
 
 @media (prefers-reduced-motion: reduce) {
