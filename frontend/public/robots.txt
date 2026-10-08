@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: /admin
+Disallow: /api/admin
+Sitemap: https://bbsign.dev/sitemap.xml
