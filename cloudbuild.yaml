@@ -5,6 +5,7 @@ substitutions:
   _IMAGE: ${_REGION}-docker.pkg.dev/${PROJECT_ID}/cloud-run-source-deploy/bbsign:${COMMIT_SHA}
 options:
   dynamicSubstitutions: true
+  substitutionOption: ALLOW_LOOSE  # 觸發條件上 Cloud Run 主控台留下的 _AR_HOSTNAME 等變數用不到，不報錯
   logging: CLOUD_LOGGING_ONLY
 
 steps:
