@@ -210,21 +210,12 @@ const PAGES: Record<string, LazyExoticComponent<() => JSX.Element>> = {
 
 ## 7. 部署與 z-running 下線
 
-1. Secret Manager 新增 CWA、MOENV 兩把金鑰（沿用 z-running 已申請的）。
-   - 注意：`cloudbuild.yaml` 用 `BBSIGN_DATABASE_URL` 這套命名，`deploy.sh` 用 `bbsign-database-url`，兩套不一致。新 secret 跟著實際在用的那套，順便統一。
-2. `sitemap.xml` 加 `/weather`、`/pace`、`/tools`、`/tools/badminton`、`/tools/convert`。
-3. z-running.com 301 逐頁對應，保住既有搜尋排名：
-
-   | 舊 | 新 |
-   | --- | --- |
-   | `/weather`、`/` | `/weather` |
-   | `/running` | `/pace` |
-   | `/badminton` | `/tools/badminton` |
-   | `/weight`、`/pitching` | `/tools/convert` |
-   | 其他 | `/` |
-
-   z-running.com 的 DNS 在 Namecheap（指向 `ghs.googlehosted.com`，是 Cloud Run 網域對應），Namecheap 的轉址做不到逐頁對應，所以改在 `main.py` 加依 Host 轉址的 middleware，再把網域對應從 z-running 服務改指到 bbsign 服務；DNS 不用動。
-4. 301 確認生效後，停掉 z-running 的 Cloud Run 服務，撤銷 OpenWeatherMap、Google Maps、OpenCage 金鑰。
+1. ✅ Secret Manager 的 `CWA_API_KEY`、`MOENV_API_KEY` 由 `cloudbuild.yaml` 以 `--update-secrets` 帶入 bbsign 服務。
+   - `cloudbuild.yaml`（`BBSIGN_*`）與 `deploy.sh`（`bbsign-*`）的 secret 命名仍不一致，`deploy.sh` 是早期第一次部署用的腳本。
+2. ✅ `sitemap.xml` 加 `/weather`、`/pace`、`/tools`、`/tools/badminton`、`/tools/convert`。
+3. z-running.com **直接停用，不做 301**（2026-10-11 決定）。曾在 `main.py` 寫過依 Host 轉址的 middleware，決定停用網域後已刪除；z-running.com 原有的搜尋排名與書籤流量不會導到 BB Sign。
+4. 停用 z-running 時：刪 Cloud Run 服務、Cloud Build 觸發條件、網域對應（與 Artifact Registry 映像檔），撤銷 OpenWeatherMap、Google Maps、OpenCage 金鑰。
+   - **不要刪 `CWA_API_KEY`、`MOENV_API_KEY` 這兩個 secret**，BB Sign 正在用；只刪 `OPENWEATHER_API_KEY`。
 
 ## 8. 階段
 
@@ -238,7 +229,7 @@ const PAGES: Record<string, LazyExoticComponent<() => JSX.Element>> = {
 | **P3** `/weather` ✅ | 跑步天氣頁；lib 拿掉 `color`／`emoji`／`brightness` 遺留欄位 | L | 縣市與 GPS 兩種模式；定位被拒、上游 503 有提示；手機排版通過 |
 | **P4** `/pace` + 賽事整合 ✅ | 配速頁、`RaceWeather`、配速連結 | M | 6 天內的賽事顯示比賽日天氣；超過 6 天不發請求；連結帶入距離 |
 | **P5** `/tools` ✅ | 羽球記分板、換算 | M | 記分板重整後能續局、螢幕不休眠；手機直放橫放一屏看完 |
-| **P6** 上線（程式碼 ✅，雲端設定待做） | 全站導覽（首頁右上角也有）；sitemap、README；`cloudbuild.yaml` 用 `--update-secrets` 帶入 `CWA_API_KEY`、`MOENV_API_KEY`；`main.py` 依 Host 把 z-running.com 逐頁 301。雲端：確認／建立 secret → 合併部署 → z-running.com 網域對應改指 bbsign 服務 → 停掉 z-running 服務、撤銷 OWM／Google／OpenCage 金鑰 | S | 舊網址 301 到對應頁 |
+| **P6** 上線 ✅ | 全站導覽（首頁右上角也有）；sitemap、README；`cloudbuild.yaml` 用 `--update-secrets` 帶入 `CWA_API_KEY`、`MOENV_API_KEY`；已合併 main 並部署。z-running.com 直接停用，不做 301 | S | 正式站 `/weather` 有資料 |
 | P7（可選） | 地圖點縣市時顯示今日跑步指數 | M | P1–P6 穩定再評估 |
 
 ## 9. 風險
@@ -250,10 +241,10 @@ const PAGES: Record<string, LazyExoticComponent<() => JSX.Element>> = {
 | CWA／MOENV 維護或限流 | 整包快取，使用者流量不會打到上游；失敗時前端顯示 Notice |
 | 預報解析度 | 已改成鄉鎮層級（見 4.6）；賽事地點比對不到鄉鎮時標示用了哪個鄉鎮的預報 |
 | 設計風格差太多（亮紙 vs 暗夜） | 只搬 lib 邏輯，畫面全部依 BB Sign 規範重寫 |
-| z-running.com 的既有流量 | 逐頁 301，不是全部導到首頁 |
+| z-running.com 的既有流量 | 決定直接停用網域，接受流量流失 |
 
 ## 10. 已定與待定
 
-- 已定：天氣、配速整併進主站；羽球、球速、重量放「小工具」區；UI 一律用 BB Sign 的；z-running.com 逐頁 301 轉到 BB Sign。
+- 已定：天氣、配速整併進主站；羽球、球速、重量放「小工具」區；UI 一律用 BB Sign 的；z-running.com 直接停用（不做 301）。
 - 預設：小工具放在 BB Sign 的 `/tools` 底下（同一個部署）。要拆成獨立網站也容易，因為三個工具都是純前端。
 - 待定：P7 地圖跑步指數做不做。

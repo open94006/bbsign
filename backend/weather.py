@@ -187,13 +187,16 @@ def check_county(county: str) -> None:
 
 @router.get("/api/weather")
 def current(lat: float | None = None, lon: float | None = None, county: str | None = None, town: str | None = None):
-    obs = [s for s in stations() if None not in (s["temp"], s["humidity"], s["wind"])]
+    # 先驗證參數，不合法的請求不碰上游
     if county is not None:
         check_county(county)
-        area = place(county, town)
-        lat, lon = area["lat"], area["lon"]
     elif lat is None or lon is None or not in_taiwan(lat, lon):
         raise HTTPException(400, "請提供台灣範圍內的經緯度或縣市")
+
+    obs = [s for s in stations() if None not in (s["temp"], s["humidity"], s["wind"])]
+    if county is not None:
+        area = place(county, town)
+        lat, lon = area["lat"], area["lon"]
     else:
         # 定位：用最近測站判斷縣市，再挑縣市內最近的鄉鎮
         st = nearest(obs, lat, lon)
