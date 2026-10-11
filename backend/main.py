@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import Field
 
 import db
+import weather
 from crawl.normalize import Race
 
 URL = r"^https?://\S+$"
@@ -69,6 +70,9 @@ def events():
         if db.cache:
             db.cache.set(db.CACHE_KEY, body, ex=3600)
     return Response(body, media_type="application/json", headers={"Cache-Control": "public, max-age=300"})
+
+
+app.include_router(weather.router)  # /api/weather、/api/weather/week
 
 
 # ---------- 管理 API ----------
