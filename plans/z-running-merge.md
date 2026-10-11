@@ -157,7 +157,7 @@ const PAGES: Record<string, LazyExoticComponent<() => JSX.Element>> = {
 - 跑步指數大數字 + 等級，「現在 vs 3 小時後」對照。
 - 6 小時趨勢，標出最佳時段（`pickBestSlotIndex`）。
 - 穿著、補水、風向建議（`runnerAdvice`），日出日落（`sunTimes`）。
-- 跑者設定：怕熱／一般／怕冷、平常配速，存 localStorage。
+- 跑者設定：只留怕熱／普通／怕冷（存 localStorage）。VDOT 訓練配速移到 `/pace`，不在兩頁重複。
 - 拿掉的：地名搜尋（改成縣市選單 + GPS）、收藏多個地點（只記上次縣市，有需求再加回來）。
 
 ### 5.3 `/pace` 配速
@@ -183,7 +183,7 @@ const PAGES: Record<string, LazyExoticComponent<() => JSX.Element>> = {
 
 - 只用 BB Sign 的 `tokens.css` + `components.css`；公開頁不用 shadcn（shadcn 維持只在 `/admin` 的 chunk）。
 - `tokens.css` 新增跑步狀況四級色 `--cond-excellent/good/fair/poor`，對應 lib 的 `level`；不和唯一強調色 `--sunrise` 混用。設計規範的 tokens.json 不在這個 repo，要另外同步。
-- lib 回傳的 `color`（`bg-score-*`）、`emoji` 是 z-running 的 Tailwind 遺留，畫面不用它們，改用 `level` 對應 `--cond-*`；P3 做完再從 lib 和測試一起拿掉。
+- lib 回傳的 `color`、`emoji`、`brightness` 是 z-running 的 Tailwind 遺留，P3 已拿掉；畫面用 `level` 對應 `--cond-*`。
 - BB Sign 只有暗色，不搬 ThemeToggle。
 - 新頁面要符合現有規範：手機 16px 邊距、不能水平捲動、`focus-visible` 樣式、按鈕要有 aria-label。
 
@@ -222,7 +222,7 @@ const PAGES: Record<string, LazyExoticComponent<() => JSX.Element>> = {
 | **P0** 驗證資料源 ✅ | 用金鑰實際打 CWA 三個資料集 + MOENV，確認能取代 OWM（結果見 4.4） | S | 溫度、濕度、風速風向、體感、降雨機率、UV、逐 3 小時都拿得到；拿不到的欄位只留 OWM 當單一備援 |
 | **P1** 後端 ✅ | `weather.py` + `test_weather.py` | M | 兩個端點回正確資料；離線與上游實測都通過；Redis 快取命中 0.02 秒 |
 | **P2** 骨架 ✅ | lib 搬入、vitest 5（bbsign 是 vite 8）、`main.tsx` 路由、共用外框 `Page.tsx` + `pages.css`、狀況色 token | S | `npm test` 49 項全過；各路徑能開；首頁不載入子頁樣式 |
-| **P3** `/weather` | 跑步天氣頁 | L | 縣市與 GPS 兩種模式；手機排版通過 |
+| **P3** `/weather` ✅ | 跑步天氣頁；lib 拿掉 `color`／`emoji`／`brightness` 遺留欄位 | L | 縣市與 GPS 兩種模式；定位被拒、上游 503 有提示；手機排版通過 |
 | **P4** `/pace` + 賽事整合 | 配速頁、`RaceWeather`、配速連結 | M | 6 天內的賽事顯示比賽日天氣；連結帶入距離 |
 | **P5** `/tools` | 羽球記分板、換算 | M | 記分板重整後能續局、螢幕不休眠 |
 | **P6** 上線 | Secret Manager 建 CWA／MOENV 金鑰並掛進 `cloudbuild.yaml`、`deploy.sh`（**先建 secret 再改設定，否則部署會失敗**）；sitemap、README、頁首頁尾入口、z-running 301 | S | 舊網址 301 到對應頁 |

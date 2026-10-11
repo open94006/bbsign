@@ -1,0 +1,110 @@
+/* /weather 跑步天氣。只用 tokens.css 的 token；狀況色依 data-level 對應 --cond-*。 */
+
+[data-level='excellent'] { --c: var(--cond-excellent); }
+[data-level='good'] { --c: var(--cond-good); }
+[data-level='fair'] { --c: var(--cond-fair); }
+[data-level='poor'] { --c: var(--cond-poor); }
+
+.wx-muted { color: var(--chalk-2); }
+
+.wx-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+.wx-select {
+  min-height: 44px;
+  padding: 0 44px 0 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background:
+    linear-gradient(45deg, transparent 50%, var(--chalk-2) 50%) right 24px center / 6px 6px no-repeat,
+    linear-gradient(135deg, var(--chalk-2) 50%, transparent 50%) right 18px center / 6px 6px no-repeat,
+    var(--night);
+  color: var(--chalk);
+  font: 700 15px/1 var(--font-sans);
+  appearance: none;
+  cursor: pointer;
+  transition: border-color var(--dur-micro) var(--ease-out);
+}
+.wx-select:hover { border-color: var(--chalk); }
+.wx-tolerance { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin-left: auto; }
+.wx-tolerance .t-label { color: var(--chalk-3); }
+
+.wx-notice {
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--urgent);
+  border-radius: var(--radius-s);
+  background: var(--night-2);
+}
+
+.wx-report { display: flex; flex-direction: column; gap: var(--space-7); transition: opacity var(--dur-short) var(--ease-out); }
+.wx-report[aria-busy='true'] { opacity: 0.55; }
+
+.wx-hero { display: grid; gap: var(--space-3); }
+.wx-verdict { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2) var(--space-5); color: var(--c); }
+.wx-verdict__text { font: 900 80px/1.05 var(--font-sans); letter-spacing: -0.02em; }
+.wx-verdict__score { font: 800 56px/1 var(--font-display); font-variant-numeric: tabular-nums; }
+.wx-verdict__score small { margin-left: 4px; color: var(--chalk-3); font-size: 20px; }
+
+.wx-bar { display: block; height: 6px; overflow: hidden; border-radius: var(--radius-pill); background: var(--night-3); }
+.wx-bar > span { display: block; height: 100%; border-radius: inherit; background: var(--c); transition: width var(--dur-long) var(--ease-out); }
+.wx-bar--s { height: 4px; }
+
+.wx-tags { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.wx-tag { padding: 4px 12px; border: 1px solid var(--rule); border-radius: var(--radius-pill); color: var(--chalk-2); }
+.wx-tag::before { content: '✓ '; color: var(--cond-excellent); }
+.wx-tag--warn { border-color: var(--urgent); color: var(--chalk); }
+.wx-tag--warn::before { content: '! '; color: var(--urgent); font-weight: 700; }
+
+.wx-stats { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--space-5) var(--space-4); margin: 0; }
+.wx-stats > div { display: grid; align-content: start; gap: var(--space-1); padding-top: var(--space-3); border-top: 1px solid var(--rule); }
+.wx-stats dt { color: var(--chalk-3); }
+.wx-stats dd { margin: 0; }
+.wx-figure { font: 800 36px/1 var(--font-display); font-variant-numeric: tabular-nums; }
+.wx-figure small { color: var(--chalk-3); font: 500 13px var(--font-sans); }
+
+.wx-section { display: grid; align-content: start; gap: var(--space-3); }
+
+.wx-trend { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
+.wx-trend li {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-3);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-m);
+  background: var(--night-2);
+}
+.wx-trend li[data-best] { border-color: var(--sunrise); }
+.wx-trend__temp { font: 800 28px/1 var(--font-display); font-variant-numeric: tabular-nums; }
+.wx-best {
+  position: absolute;
+  top: -10px;
+  right: var(--space-3);
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--sunrise);
+  color: var(--on-sunrise);
+  font-weight: 700;
+}
+
+.wx-advice { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6) var(--space-7); }
+.wx-advice .wx-section { padding-top: var(--space-4); border-top: 1px solid var(--rule); }
+.wx-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
+@media (max-width: 859px) {
+  .wx-select { font-size: 16px; } /* 小於 16px，iOS 聚焦時會放大頁面 */
+  .wx-tolerance { margin-left: 0; }
+  .wx-verdict__text { font-size: 56px; }
+  .wx-verdict__score { font-size: 40px; }
+  .wx-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .wx-trend { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: var(--space-4); }
+  .wx-advice { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 519px) {
+  .wx-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wx-bar > span,
+  .wx-report { transition: none; }
+}

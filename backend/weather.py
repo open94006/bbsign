@@ -180,6 +180,8 @@ def current(lat: float | None = None, lon: float | None = None, county: str | No
         "location": st["county"] + st["town"],
         "city": county,
         "station": st["name"],
+        "lat": st["lat"],  # 測站座標，前端算日出日落用
+        "lon": st["lon"],
         "temperature": st["temp"],
         "humidity": st["humidity"],
         "windSpeed": kmh(st["wind"]),

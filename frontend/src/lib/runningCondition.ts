@@ -239,16 +239,10 @@ export const getRunningCondition = (temp: number, aqi: number | undefined, pm25:
     score = Math.max(0, Math.min(100, score));
     const roundedDewPoint = Math.round(dewPoint * 10) / 10;
 
-    // 分數亮度：同一等級內分數愈高愈鮮明（0.85 → 1.10）
-    const calcBrightness = (s: number, min: number, max: number) => parseFloat((0.85 + ((s - min) / (max - min)) * 0.25).toFixed(2));
-
     if (score >= 80)
         return {
             level: 'excellent',
             text: '絕佳',
-            color: 'bg-score-excellent',
-            emoji: '🏃‍♂️💨',
-            brightness: calcBrightness(score, 80, 100),
             issues,
             score,
             penalties,
@@ -259,9 +253,6 @@ export const getRunningCondition = (temp: number, aqi: number | undefined, pm25:
         return {
             level: 'good',
             text: '良好',
-            color: 'bg-score-good',
-            emoji: '🏃‍♂️',
-            brightness: calcBrightness(score, 60, 80),
             issues,
             score,
             penalties,
@@ -272,9 +263,6 @@ export const getRunningCondition = (temp: number, aqi: number | undefined, pm25:
         return {
             level: 'fair',
             text: '尚可',
-            color: 'bg-score-fair',
-            emoji: '🚶‍♂️',
-            brightness: calcBrightness(score, 40, 60),
             issues,
             score,
             penalties,
@@ -284,9 +272,6 @@ export const getRunningCondition = (temp: number, aqi: number | undefined, pm25:
     return {
         level: 'poor',
         text: '不佳',
-        color: 'bg-score-poor',
-        emoji: '⚠️',
-        brightness: calcBrightness(score, 0, 40),
         issues,
         score,
         penalties,
