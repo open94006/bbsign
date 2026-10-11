@@ -25,6 +25,12 @@
   --tri: oklch(0.77 0.16 55);
   --urgent: oklch(0.74 0.15 25);
 
+  /* 跑步狀況四級（lib/runningCondition 的 level），色相避開晨光強調色 */
+  --cond-excellent: oklch(0.8 0.15 150);
+  --cond-good: oklch(0.8 0.1 200);
+  --cond-fair: oklch(0.8 0.13 70);
+  --cond-poor: var(--urgent);
+
   /* 地圖熱度：賽事越多越亮 */
   --map-0: oklch(0.33 0.045 266);
   --map-1: oklch(0.4 0.08 262);

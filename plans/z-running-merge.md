@@ -49,6 +49,7 @@ bbsign/
 │   └── src/
 │       ├── main.tsx         ～ pathname → lazy 頁面對照表
 │       ├── tokens.css       ～ + 跑步狀況四級色（同步 tokens.json）
+│       ├── Page.tsx         ＋ 子頁共用外框：頁首導覽、標題、頁尾，並更新 title／description／canonical
 │       ├── pages.css        ＋ 新頁面共用樣式，跟著 lazy chunk 載入，不影響首頁
 │       ├── App.tsx          ～ 頁首／頁尾加「跑步天氣・配速・小工具」入口
 │       ├── RaceRow.tsx      ～ 展開區掛 <RaceWeather>、配速連結
@@ -181,7 +182,8 @@ const PAGES: Record<string, LazyExoticComponent<() => JSX.Element>> = {
 ### 5.6 設計系統
 
 - 只用 BB Sign 的 `tokens.css` + `components.css`；公開頁不用 shadcn（shadcn 維持只在 `/admin` 的 chunk）。
-- `tokens.css` 新增跑步狀況四級色（適合／尚可／注意／不建議），同步到 tokens.json；不和唯一強調色 `--sunrise` 混用。
+- `tokens.css` 新增跑步狀況四級色 `--cond-excellent/good/fair/poor`，對應 lib 的 `level`；不和唯一強調色 `--sunrise` 混用。設計規範的 tokens.json 不在這個 repo，要另外同步。
+- lib 回傳的 `color`（`bg-score-*`）、`emoji` 是 z-running 的 Tailwind 遺留，畫面不用它們，改用 `level` 對應 `--cond-*`；P3 做完再從 lib 和測試一起拿掉。
 - BB Sign 只有暗色，不搬 ThemeToggle。
 - 新頁面要符合現有規範：手機 16px 邊距、不能水平捲動、`focus-visible` 樣式、按鈕要有 aria-label。
 
@@ -219,7 +221,7 @@ const PAGES: Record<string, LazyExoticComponent<() => JSX.Element>> = {
 | --- | --- | --- | --- |
 | **P0** 驗證資料源 ✅ | 用金鑰實際打 CWA 三個資料集 + MOENV，確認能取代 OWM（結果見 4.4） | S | 溫度、濕度、風速風向、體感、降雨機率、UV、逐 3 小時都拿得到；拿不到的欄位只留 OWM 當單一備援 |
 | **P1** 後端 ✅ | `weather.py` + `test_weather.py` | M | 兩個端點回正確資料；離線與上游實測都通過；Redis 快取命中 0.02 秒 |
-| **P2** 骨架 | lib 搬入、vitest、`main.tsx` 路由、`pages.css`、狀況色 token | S | `npm test` 全過；各路徑能開空頁 |
+| **P2** 骨架 ✅ | lib 搬入、vitest 5（bbsign 是 vite 8）、`main.tsx` 路由、共用外框 `Page.tsx` + `pages.css`、狀況色 token | S | `npm test` 49 項全過；各路徑能開；首頁不載入子頁樣式 |
 | **P3** `/weather` | 跑步天氣頁 | L | 縣市與 GPS 兩種模式；手機排版通過 |
 | **P4** `/pace` + 賽事整合 | 配速頁、`RaceWeather`、配速連結 | M | 6 天內的賽事顯示比賽日天氣；連結帶入距離 |
 | **P5** `/tools` | 羽球記分板、換算 | M | 記分板重整後能續局、螢幕不休眠 |

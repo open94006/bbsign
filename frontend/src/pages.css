@@ -1,0 +1,64 @@
+/* 子頁（跑步天氣、配速、小工具）共用版面。由 Page.tsx 引入，跟著 lazy chunk 載入，首頁不會下載。
+ * 只用 tokens.css 的 token。
+ */
+
+.page {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  padding: 0 var(--space-7);
+  isolation: isolate;
+}
+.page > .bb-sky { position: fixed; z-index: -1; }
+
+.page-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-5);
+  padding-top: var(--space-6);
+}
+.page-bar a { color: inherit; text-decoration: none; }
+.page-bar ul { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); margin: 0; padding: 0; list-style: none; }
+.page-bar nav a { color: var(--chalk-2); transition: color var(--dur-micro) var(--ease-out); }
+.page-bar nav a:hover { color: var(--chalk); }
+.page-bar nav a[aria-current='page'] { color: var(--sunrise); }
+
+.page-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-5);
+  width: 100%;
+  max-width: 960px;
+  padding: var(--space-8) 0 var(--space-7);
+}
+.page-main h1 { text-wrap: balance; }
+
+.page-foot { padding-bottom: var(--space-5); color: var(--chalk-3); }
+
+/* 小工具目錄 */
+.tool-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--space-4); margin: 0; padding: 0; list-style: none; }
+.tool-list a {
+  display: grid;
+  gap: var(--space-2);
+  height: 100%;
+  padding: var(--space-5);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-m);
+  background: var(--night-2);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color var(--dur-short) var(--ease-out), background var(--dur-short) var(--ease-out);
+}
+.tool-list a:hover { border-color: var(--line); background: var(--night-3); }
+.tool-list p { color: var(--chalk-2); }
+
+@media (max-width: 859px) {
+  .page { padding: 0 var(--space-4); }
+  .page-bar { padding-top: var(--space-4); }
+  .page-main { padding-top: var(--space-6); }
+  .page-main h1 { font-size: 32px; }
+}
