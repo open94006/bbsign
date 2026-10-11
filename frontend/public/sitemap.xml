@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://bbsign.dev/</loc></url>
+  <url><loc>https://bbsign.dev/weather</loc></url>
+  <url><loc>https://bbsign.dev/pace</loc></url>
+  <url><loc>https://bbsign.dev/tools</loc></url>
+  <url><loc>https://bbsign.dev/tools/badminton</loc></url>
+  <url><loc>https://bbsign.dev/tools/convert</loc></url>
 </urlset>

@@ -17,6 +17,11 @@ body {
 }
 
 [hidden] { display: none !important; }
+/* 全站導覽（SiteNav）：子頁在頁首右側；首頁桌機固定在右上角，手機和站名同一行 */
+.site-nav ul { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); margin: 0; padding: 0; list-style: none; }
+.site-nav a { color: var(--chalk-2); text-decoration: none; transition: color var(--dur-micro) var(--ease-out); }
+.site-nav a:hover { color: var(--chalk); }
+.site-nav a[aria-current='page'] { color: var(--sunrise); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 /* 放在 layer 裡：管理頁的 Tailwind utility 才蓋得過（unlayered 一律贏 layered） */
 @layer base {
@@ -52,6 +57,7 @@ body {
   padding-top: var(--space-6);
 }
 .home-bar .t-caption { color: var(--chalk-3); }
+.home-bar .site-nav { position: absolute; top: var(--space-6); right: var(--space-7); z-index: 1; line-height: 28px; } /* 28px＝站名行高，文字對齊 */
 
 .home-panel {
   grid-area: panel;
@@ -151,7 +157,9 @@ body {
     row-gap: var(--space-3);
     padding: 0 var(--space-4);
   }
-  .home-bar { padding-top: var(--space-4); }
+  .home-bar { flex-wrap: wrap; padding-top: var(--space-4); }
+  .home-bar .site-nav { position: static; margin-left: auto; }
+  .home-bar .t-caption { order: 1; flex-basis: 100%; }
   .home-panel { display: contents; }
   .home-panel h1 { grid-area: headline; font-size: 24px; }
   .home-panel h1 br { display: none; }

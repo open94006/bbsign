@@ -2,15 +2,25 @@
 
 把台灣的路跑、自行車、三鐵賽事整理在同一頁：點地圖上的縣市 → 看賽事 → 看比賽日、距離、報名費、紀念品與標籤 → 一鍵前往報名。
 
+另有跑者工具（從 z-running 整併，規劃見 [plans/z-running-merge.md](plans/z-running-merge.md)）：
+
+| 頁面 | 內容 |
+| --- | --- |
+| `/weather` | 跑步天氣：依縣市或定位看現在適不適合跑、未來 6 小時、穿著補水建議 |
+| `/pace` | 配速計算：距離＋完賽時間或配速 → 配速、VDOT、訓練配速 |
+| `/tools` | 小工具：羽球記分板、球速與重量換算 |
+| 賽事詳細卡 | 6 天內的賽事顯示比賽日天氣；路跑賽事有「算配速」連結 |
+
 ## 架構
 
 | 部分              | 內容                                                                                 |
 | ----------------- | ------------------------------------------------------------------------------------ |
-| `frontend/`       | Vite + React + TypeScript；地圖用 `taiwan-atlas` + `d3-geo`；`/admin` 是管理頁       |
+| `frontend/`       | Vite + React + TypeScript；地圖用 `taiwan-atlas` + `d3-geo`；`/admin` 是管理頁；子頁依路徑 lazy 載入（`main.tsx`） |
 | `backend/main.py` | FastAPI：`GET /api/events`（全部未來賽事，篩選在前端做）、`/api/admin/*`（管理頁用） |
+| `backend/weather.py` | `GET /api/weather`、`/api/weather/week`：代理中央氣象署、環境部開放資料，整包快取在 Redis |
 | `backend/crawl/`  | 每個來源一支爬蟲 → `normalize.py` 用 Claude Haiku 抽成統一欄位 → 寫入資料庫          |
 | 資料庫            | Neon PostgreSQL，單表 `events`（`backend/schema.sql`，啟動時自動建立）               |
-| 快取              | Upstash Redis：快取 `/api/events`、限制管理頁登入失敗次數                            |
+| 快取              | Upstash Redis：快取 `/api/events` 與天氣資料（`bb:wx:*`）、限制管理頁登入失敗次數    |
 
 ### 資料來源
 
@@ -36,12 +46,19 @@ docker run -d --name bbsign-redis -p 63799:6379 redis:7-alpine
 # 2. 後端（Python 3.10 以上）
 cd backend
 python3.13 -m venv .venv && .venv/bin/pip install -r requirements.txt
-cp .env.example .env   # 填入本機的值
+cp .env.example .env   # 填入本機的值：DATABASE_URL=postgresql://postgres:dev@localhost:54329/bbsign、REDIS_URL=redis://localhost:63799，天氣要 CWA_API_KEY、MOENV_API_KEY
 set -a; source .env; set +a
 .venv/bin/uvicorn main:app --reload --port 8000
 
 # 3. 前端（另開終端機），/api 會轉到 8000 埠
 cd frontend && npm install && npm run dev
+```
+
+### 測試
+
+```bash
+cd frontend && npm test                        # 跑步評分、配速、羽球計分規則（vitest）
+cd backend && .venv/bin/python test_weather.py  # 天氣 API 自我檢查；有 CWA_API_KEY、MOENV_API_KEY 才會實際打上游
 ```
 
 ### 爬蟲
@@ -93,7 +110,7 @@ PROJECT=你的專案ID DATABASE_URL='postgresql://…-pooler…' REDIS_URL='redi
 
 一次性設定：
 
-1. 在 Cloud Run 主控台替服務 `bbsign` 設定 `ADMIN_TOKEN`，以及從 Secret Manager 帶入的 `DATABASE_URL`、`REDIS_URL`。爬蟲 Job 用的機密名稱寫在 `cloudbuild.yaml`（`BBSIGN_DATABASE_URL`、`UPSTASH_REDIS_URL`、`BBSIGN_ANTHROPIC_API_KEY`）。
+1. 在 Cloud Run 主控台替服務 `bbsign` 設定 `ADMIN_TOKEN`，以及從 Secret Manager 帶入的 `DATABASE_URL`、`REDIS_URL`。爬蟲 Job 用的機密名稱寫在 `cloudbuild.yaml`（`BBSIGN_DATABASE_URL`、`UPSTASH_REDIS_URL`、`BBSIGN_ANTHROPIC_API_KEY`）。天氣金鑰由 `cloudbuild.yaml` 帶入服務，Secret Manager 裡要有 `CWA_API_KEY`、`MOENV_API_KEY`（中央氣象署、環境部開放資料平台免費申請）。
 2. Cloud Build 觸發條件的設定檔要選 `cloudbuild.yaml`。從 Cloud Run 主控台「持續部署」建立的觸發條件預設是內嵌設定，只會換映像檔，要改成這個檔案：
    `gcloud builds triggers update github <觸發條件名稱> --build-config=cloudbuild.yaml`
 3. 服務、Job 與建置都用 Compute 預設服務帳戶，它需要 `Cloud Run 管理員`、`服務帳戶使用者`、`Artifact Registry 寫入者`、`Secret Manager 存取者`。

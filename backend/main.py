@@ -7,7 +7,7 @@ from pathlib import Path
 
 import httpx
 from fastapi import Depends, FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import Field
 
@@ -46,6 +46,18 @@ async def security_headers(request: Request, call_next):
     response = await call_next(request)
     response.headers.update(SECURITY_HEADERS)
     return response
+
+
+# z-running.com 併入 BB Sign：逐頁 301 轉到對應頁（要把 z-running.com 的網域對應指到這個服務才會生效）
+ZRUNNING = {"": "/weather", "weather": "/weather", "running": "/pace", "badminton": "/tools/badminton",
+            "weight": "/tools/convert", "pitching": "/tools/convert"}
+
+
+@app.middleware("http")
+async def zrunning_redirect(request: Request, call_next):
+    if request.url.hostname in ("z-running.com", "www.z-running.com"):
+        return RedirectResponse("https://bbsign.dev" + ZRUNNING.get(request.url.path.strip("/"), "/"), 301)
+    return await call_next(request)
 
 
 # ---------- 公開 API ----------

@@ -18,9 +18,11 @@ steps:
     args:
       - -euc
       - |
-        # 服務的機密與 ADMIN_TOKEN 在 Cloud Run 主控台設定，這裡只換映像檔、補上 CRAWL_JOB，其餘設定沿用
+        # 服務的機密與 ADMIN_TOKEN 在 Cloud Run 主控台設定，這裡只換映像檔、補上 CRAWL_JOB 與天氣金鑰，其餘設定沿用
+        # （--update-* 只新增或覆蓋列出的項目，不會清掉主控台設定的其他機密）
         gcloud run deploy bbsign --image $_IMAGE --region $_REGION \
-          --update-env-vars CRAWL_JOB=projects/$PROJECT_ID/locations/$_REGION/jobs/bbsign-crawl
+          --update-env-vars CRAWL_JOB=projects/$PROJECT_ID/locations/$_REGION/jobs/bbsign-crawl \
+          --update-secrets CWA_API_KEY=CWA_API_KEY:latest,MOENV_API_KEY=MOENV_API_KEY:latest
         # ponytail: 服務與 Job 都用 Compute 預設服務帳戶（已有 run.admin、secretAccessor），要隔離權限再拆
         gcloud run jobs deploy bbsign-crawl --image $_IMAGE --region $_REGION \
           --command python --args=-m,crawl.run --task-timeout 30m --max-retries 0 \

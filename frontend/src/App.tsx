@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent } from 'react'
 import Filters from './Filters'
 import RaceDrawer from './RaceDrawer'
+import SiteNav from './SiteNav'
 import { RaceHead } from './RaceRow'
 import TaiwanMap from './TaiwanMap'
 import { matches, readFilters, seasonOf, signupStatus, todayInTaiwan, writeFilters, type Filters as F, type RaceEvent } from './data'
@@ -104,6 +105,7 @@ export default function App() {
       <header className="home-bar">
         <span className="t-wordmark">BB SIGN</span>
         <span className="t-caption">比比賽・國內賽事報名資訊平台</span>
+        <SiteNav />
       </header>
 
       <section className="home-panel" aria-labelledby="headline">
