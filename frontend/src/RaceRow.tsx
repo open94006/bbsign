@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { CountdownChip, CountdownPanel, inListRange } from './Countdown'
+import RaceWeather from './weather/RaceWeather'
 import { SOURCES, dateParts, distances, feeFrom, feeRange, km, mapsUrl, safeUrl, signupStatus, type RaceEvent } from './data'
 
 // 線條圖示：18px、currentColor、圓角端點
@@ -211,6 +212,19 @@ export default function RaceRow({ e, today, open, onToggle }: Props) {
                   </dd>
                 </div>
               )}
+              {e.sport === '路跑' && e.distances_km.length > 0 && (
+                <div>
+                  <dt className="t-label">算配速</dt>
+                  <dd className="bb-pace-links">
+                    {distances(e).map((d) => (
+                      <a key={d} className="bb-btn bb-btn--quiet" href={`/pace?d=${d}`}>
+                        {km(d)}K
+                      </a>
+                    ))}
+                  </dd>
+                </div>
+              )}
+              {seen && <RaceWeather e={e} today={today} />}
               {price && (
                 <div>
                   <dt className="t-label">報名費</dt>

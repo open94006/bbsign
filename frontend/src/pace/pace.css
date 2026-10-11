@@ -1,0 +1,52 @@
+/* /pace 配速計算。只用 tokens.css 的 token。 */
+
+.pace-muted { color: var(--chalk-2); }
+
+.pace-form { display: grid; gap: var(--space-5); }
+.pace-field { display: grid; gap: var(--space-3); margin: 0; padding: 0; border: 0; }
+.pace-field legend { margin-bottom: var(--space-3); padding: 0; color: var(--chalk-3); }
+.pace-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); }
+
+.pace-input { display: inline-flex; align-items: center; gap: var(--space-2); }
+.pace-input input {
+  width: 5.5em;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--night);
+  color: var(--chalk);
+  font: 800 22px/1 var(--font-display);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  transition: border-color var(--dur-micro) var(--ease-out);
+}
+.pace-input input:hover { border-color: var(--chalk-2); }
+.pace-input--s input { width: 3.2em; } /* 時分秒只有兩位數 */
+.pace-input .t-label { color: var(--chalk-3); }
+
+.pace-result { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); margin: 0; }
+.pace-result > div { display: grid; gap: var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--rule); }
+.pace-result dt { color: var(--chalk-3); }
+.pace-result dd { margin: 0; }
+.pace-big { color: var(--sunrise); font: 800 56px/1 var(--font-display); font-variant-numeric: tabular-nums; }
+
+.pace-training { display: grid; gap: var(--space-4); }
+.pace-training ul { display: grid; gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
+.pace-training li {
+  display: grid;
+  grid-template-columns: 9em 11em minmax(0, 1fr);
+  align-items: baseline;
+  gap: var(--space-2) var(--space-5);
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--rule);
+}
+.pace-range { font: 800 28px/1 var(--font-display); font-variant-numeric: tabular-nums; }
+.pace-range small { color: var(--chalk-3); font: 500 13px var(--font-sans); }
+
+@media (max-width: 859px) {
+  .pace-result { grid-template-columns: minmax(0, 1fr); gap: var(--space-3); }
+  .pace-big { font-size: 44px; }
+  .pace-training li { grid-template-columns: minmax(0, 1fr) auto; }
+  .pace-training li .t-body { grid-column: 1 / -1; }
+}

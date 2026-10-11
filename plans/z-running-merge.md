@@ -162,15 +162,15 @@ const PAGES: Record<string, LazyExoticComponent<() => JSX.Element>> = {
 
 ### 5.3 `/pace` 配速
 
-- 輸入距離（5K／10K／半馬／全馬／自訂）和目標時間，算出每公里配速、VDOT、五種訓練配速（`getTrainingPaces`）。
+- 輸入距離（5K／10K／半馬／全馬／自訂）和目標（完賽時間或每公里配速，兩種輸入可切換），即時算出配速、完賽時間、VDOT、三種訓練配速 E／T／I（`getTrainingPaces`）。配速在每公里 2:30–15:00 之外不換算（Daniels 公式不可信）。
 - 參數放 URL：`/pace?d=21.0975&t=2:00:00`，可分享，也讓賽事頁直接帶入。
 
 ### 5.4 跟賽事接起來（`RaceRow` 展開區）
 
 這是整併真正的價值：
 
-- **比賽日天氣** `<RaceWeather>`：`race_date` 在 6 天內才顯示，展開時才抓 `/api/weather/week?county=`。內容是白天溫度、降雨機率、熱壓力等級；超過 7 天就顯示「比賽前一週會出現天氣預報」。路跑、自行車、三鐵都顯示。
-- **配速**：路跑賽事的每個距離旁加「算配速」連結，連到 `/pace?d=<距離>`。不在清單內嵌計算機，避免抽屜變擠。
+- **比賽天氣** `<RaceWeather>`：詳細卡 `bb-facts` 多一列。`race_date` 在 6 天內、而且卡片展開過才抓 `/api/weather/week?county=`，取比賽日白天那段：天氣、溫度範圍、降雨機率（第 4 天起顯示「尚未公布」）、紫外線、熱壓力提醒（白天最高溫＋露點）。超過 6 天顯示「比賽前一週會出現天氣預報」，不發請求。路跑、自行車、三鐵都顯示。
+- **算配速**：路跑賽事的詳細卡多一列，每個距離一個連結到 `/pace?d=<距離>`。不在清單內嵌計算機，避免抽屜變擠。
 - 標示「縣市預報；山區、越野賽的實際溫度可能更低」。
 
 ### 5.5 `/tools` 小工具
@@ -223,7 +223,7 @@ const PAGES: Record<string, LazyExoticComponent<() => JSX.Element>> = {
 | **P1** 後端 ✅ | `weather.py` + `test_weather.py` | M | 兩個端點回正確資料；離線與上游實測都通過；Redis 快取命中 0.02 秒 |
 | **P2** 骨架 ✅ | lib 搬入、vitest 5（bbsign 是 vite 8）、`main.tsx` 路由、共用外框 `Page.tsx` + `pages.css`、狀況色 token | S | `npm test` 49 項全過；各路徑能開；首頁不載入子頁樣式 |
 | **P3** `/weather` ✅ | 跑步天氣頁；lib 拿掉 `color`／`emoji`／`brightness` 遺留欄位 | L | 縣市與 GPS 兩種模式；定位被拒、上游 503 有提示；手機排版通過 |
-| **P4** `/pace` + 賽事整合 | 配速頁、`RaceWeather`、配速連結 | M | 6 天內的賽事顯示比賽日天氣；連結帶入距離 |
+| **P4** `/pace` + 賽事整合 ✅ | 配速頁、`RaceWeather`、配速連結 | M | 6 天內的賽事顯示比賽日天氣；超過 6 天不發請求；連結帶入距離 |
 | **P5** `/tools` | 羽球記分板、換算 | M | 記分板重整後能續局、螢幕不休眠 |
 | **P6** 上線 | Secret Manager 建 CWA／MOENV 金鑰並掛進 `cloudbuild.yaml`、`deploy.sh`（**先建 secret 再改設定，否則部署會失敗**）；sitemap、README、頁首頁尾入口、z-running 301 | S | 舊網址 301 到對應頁 |
 | P7（可選） | 地圖點縣市時顯示今日跑步指數 | M | P1–P6 穩定再評估 |

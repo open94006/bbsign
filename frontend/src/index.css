@@ -70,6 +70,10 @@ body {
 .menu-group { display: grid; gap: var(--space-2); }
 .menu-group .t-caption { color: var(--chalk-3); }
 
+/* 賽事詳細卡：路跑的「算配速」連結，一個距離一個 */
+.bb-pace-links { display: flex; flex-wrap: wrap; gap: 0 var(--space-4); }
+.bb-pace-links .bb-btn--quiet { min-height: 0; font: inherit; }
+
 /* 最近可報名的比賽：佔滿剩下的高度，放不下的整列換到看不見的第二欄，不會半截或壓到按鈕 */
 .home-next { display: flex; flex: 1 1 0; flex-direction: column; gap: var(--space-1); min-height: 0; }
 .home-next h2 { color: var(--chalk-3); }
