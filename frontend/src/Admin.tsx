@@ -1,4 +1,19 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { format, parseISO } from 'date-fns'
+import { CalendarIcon, ChevronDownIcon, SearchIcon, XIcon } from 'lucide-react'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { zhTW } from 'react-day-picker/locale'
+import './admin.css'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Calendar } from '@/components/ui/calendar'
+import { Checkbox } from '@/components/ui/checkbox'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
 import { COUNTIES, SOURCES, SPORTS, TAGS, type RaceEvent } from './data'
 
 type Row = RaceEvent & { is_race: boolean; hidden: boolean; locked: boolean; race_date: string | null; county: string | null }
@@ -30,6 +45,9 @@ async function api(path: string, token: string, init?: RequestInit) {
   return body
 }
 
+const Shell = ({ children }: { children: ReactNode }) => <main className="mx-auto max-w-[1100px] px-4 pt-6 pb-16 text-sm">{children}</main>
+const ErrorText = ({ children }: { children: ReactNode }) => <p className="text-destructive" role="alert">{children}</p>
+
 export default function Admin() {
   const [token, setToken] = useState(getToken)
   const [rows, setRows] = useState<Row[] | null>(null)
@@ -60,29 +78,27 @@ export default function Admin() {
 
   if (!rows) {
     return (
-      <main className="admin">
-        <h1>BB Sign 管理頁</h1>
+      <Shell>
+        <h1 className="text-2xl font-black">BB Sign 管理頁</h1>
         <form
-          className="admin-login"
+          className="mt-6 grid max-w-xs gap-3"
           onSubmit={(e) => {
             e.preventDefault()
             load()
           }}
         >
-          <label>
-            管理密碼
-            <input type="password" value={token} onChange={(e) => setToken(e.target.value)} autoComplete="current-password" required />
-          </label>
-          <button className="bb-btn bb-btn--primary">登入</button>
-          {error && <p className="error" role="alert">{error}</p>}
+          <Label htmlFor="token">管理密碼</Label>
+          <Input id="token" type="password" value={token} onChange={(e) => setToken(e.target.value)} autoComplete="current-password" required />
+          <Button>登入</Button>
+          {error && <ErrorText>{error}</ErrorText>}
         </form>
-      </main>
+      </Shell>
     )
   }
 
   if (editing) {
     return (
-      <main className="admin">
+      <Shell>
         <EventForm
           initial={editing}
           onCancel={() => setEditing(null)}
@@ -95,19 +111,19 @@ export default function Admin() {
             await load()
           }}
         />
-      </main>
+      </Shell>
     )
   }
 
   const q = query.trim()
   const list = rows.filter((r) => !q || r.name.includes(q) || (r.county ?? '').includes(q))
   return (
-    <main className="admin">
-      <div className="admin-head">
-        <h1>BB Sign 管理頁</h1>
-        <button className="bb-btn bb-btn--primary" onClick={() => setEditing(BLANK)}>新增賽事</button>
-        <button
-          className="bb-btn bb-btn--quiet"
+    <Shell>
+      <div className="flex items-center gap-3">
+        <h1 className="mr-auto text-2xl font-black">BB Sign 管理頁</h1>
+        <Button onClick={() => setEditing(BLANK)}>新增賽事</Button>
+        <Button
+          variant="ghost"
           onClick={() => {
             try {
               sessionStorage.removeItem(KEY)
@@ -119,40 +135,55 @@ export default function Admin() {
           }}
         >
           登出
-        </button>
+        </Button>
       </div>
-      <p className="admin-note">改過的賽事會鎖定，之後爬蟲不會覆蓋。不想顯示的賽事請勾「隱藏」，不要刪除，否則隔天爬蟲又會加回來。</p>
-      <Crawl token={token} onDone={() => load()} />
-      <input className="admin-search" type="search" placeholder="搜尋賽事名稱或縣市" value={query} onChange={(e) => setQuery(e.target.value)} />
-      <table className="admin-table">
-        <thead>
-          <tr>
-            <th>比賽日</th>
-            <th>名稱</th>
-            <th>縣市</th>
-            <th>來源</th>
-            <th>狀態</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
+      <p className="my-3 text-muted-foreground">改過的賽事會鎖定，之後爬蟲不會覆蓋。不想顯示的賽事請勾「隱藏」，不要刪除，否則隔天爬蟲又會加回來。</p>
+      <div className="mb-3 flex flex-wrap items-center gap-3">
+        <div className="relative w-full max-w-sm">
+          <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input className="pl-8" type="search" placeholder="搜尋賽事名稱或縣市" value={query} onChange={(e) => setQuery(e.target.value)} />
+        </div>
+        <span className="text-muted-foreground">{list.length} 筆</span>
+        <Crawl token={token} onDone={() => load()} />
+      </div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>比賽日</TableHead>
+            <TableHead>名稱</TableHead>
+            <TableHead>縣市</TableHead>
+            <TableHead>來源</TableHead>
+            <TableHead>狀態</TableHead>
+            <TableHead />
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {list.map((r) => (
-            <tr key={r.id} className={r.hidden || !r.is_race || !r.county ? 'muted' : ''}>
-              <td>{r.race_date ?? '未填'}</td>
-              <td>{r.name}</td>
-              <td>{r.county ?? '未填'}</td>
-              <td>{SOURCES[r.source] ?? r.source}</td>
-              <td>
-                {[r.hidden && '隱藏', !r.is_race && '非賽事', !r.county && '不在台灣', r.locked && '已鎖定'].filter(Boolean).join('、')}
-              </td>
-              <td>
-                <button className="bb-btn bb-btn--quiet" onClick={() => setEditing(r)}>編輯</button>
-              </td>
-            </tr>
+            <TableRow
+              key={r.id}
+              className={cn('cursor-pointer', (r.hidden || !r.is_race || !r.county) && 'text-muted-foreground')}
+              onClick={() => setEditing(r)}
+            >
+              <TableCell className="tabular-nums">{r.race_date ?? '未填'}</TableCell>
+              <TableCell className="whitespace-normal">{r.name}</TableCell>
+              <TableCell>{r.county ?? '未填'}</TableCell>
+              <TableCell>{SOURCES[r.source] ?? r.source}</TableCell>
+              <TableCell>
+                <div className="flex flex-wrap gap-1">
+                  {r.hidden && <Badge variant="secondary">隱藏</Badge>}
+                  {!r.is_race && <Badge variant="secondary">非賽事</Badge>}
+                  {!r.county && <Badge variant="destructive">不在台灣</Badge>}
+                  {r.locked && <Badge variant="outline">已鎖定</Badge>}
+                </div>
+              </TableCell>
+              <TableCell className="text-right">
+                <Button variant="ghost" size="sm">編輯</Button>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
-    </main>
+        </TableBody>
+      </Table>
+    </Shell>
   )
 }
 
@@ -195,19 +226,76 @@ function Crawl({ token, onDone }: { token: string; onDone: () => void }) {
 
   const when = (s?: string) => (s ? new Date(s).toLocaleString('zh-TW', { hour12: false }) : '')
   return (
-    <div className="admin-crawl">
-      <button className="bb-btn" disabled={running} onClick={() => start(true)}>只抓新賽事</button>
-      <button className="bb-btn" disabled={running} onClick={() => start(false)}>完整更新</button>
-      {!msg && <span>
+    <div className="ml-auto flex items-center gap-3 text-muted-foreground">
+      {msg ? <ErrorText>{msg}</ErrorText> : <span>
         {last === undefined ? '讀取爬蟲狀態…'
           : !last ? '還沒執行過爬蟲'
           : running ? `執行中（${when(last.createTime)} 開始）…`
           : `上次：${when(last.completionTime)} ${STATUS[last.completionStatus ?? ''] ?? last.completionStatus ?? ''}`}
       </span>}
-      {msg && <p className="error" role="alert">{msg}</p>}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" disabled={running}>執行爬蟲<ChevronDownIcon /></Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onSelect={() => start(true)}>只抓新賽事</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => start(false)}>完整更新（較久）</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   )
 }
+
+const START_MONTH = new Date(2015, 0)
+const END_MONTH = new Date(new Date().getFullYear() + 3, 11)
+
+/** shadcn 日期選擇器；值放在隱藏 input 裡，讓 FormData 照常讀得到 */
+function DateField({ name, label, initial, required }: { name: string; label: string; initial: string | null; required?: boolean }) {
+  const [value, setValue] = useState(initial ?? '')
+  const [open, setOpen] = useState(false)
+  const date = value ? parseISO(value) : undefined
+  return (
+    <div className="grid gap-1.5">
+      <Label htmlFor={name}>{label}</Label>
+      <div className="relative">
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <Button id={name} type="button" variant="outline" className={cn('w-full justify-start font-normal', !value && 'text-muted-foreground')}>
+              <CalendarIcon />
+              {date ? format(date, 'yyyy/MM/dd（EEEEE）', { locale: zhTW }) : '選擇日期'}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              locale={zhTW}
+              captionLayout="dropdown"
+              startMonth={START_MONTH}
+              endMonth={END_MONTH}
+              selected={date}
+              defaultMonth={date}
+              onSelect={(d) => {
+                setValue(d ? format(d, 'yyyy-MM-dd') : '')
+                setOpen(false)
+              }}
+            />
+          </PopoverContent>
+        </Popover>
+        {value && !required && (
+          <Button type="button" variant="ghost" size="icon" aria-label={`清除${label}`} className="absolute top-0 right-0" onClick={() => setValue('')}>
+            <XIcon />
+          </Button>
+        )}
+        {/* ponytail: 用看不見的 input 撐 required，讓瀏覽器原生驗證也管得到日期 */}
+        <input name={name} value={value} required={required} onChange={() => {}} tabIndex={-1} aria-hidden className="absolute inset-x-0 bottom-0 h-px opacity-0" />
+      </div>
+    </div>
+  )
+}
+
+const Field = ({ label, wide, children }: { label: string; wide?: boolean; children: ReactNode }) => (
+  <Label className={cn('grid gap-1.5', wide && 'md:col-span-3')}>{label}{children}</Label>
+)
 
 function EventForm({ initial, onSave, onCancel }: { initial: Row; onSave: (b: object) => Promise<void>; onCancel: () => void }) {
   const [error, setError] = useState('')
@@ -237,44 +325,49 @@ function EventForm({ initial, onSave, onCancel }: { initial: Row; onSave: (b: ob
 
   const v = (k: keyof Row) => (initial[k] as string | number | null) ?? ''
   return (
-    <form className="admin-form" onSubmit={submit}>
-      <h1>{initial.id ? '編輯賽事' : '新增賽事'}</h1>
-      <label className="wide">名稱<input name="name" defaultValue={v('name')} required /></label>
-      <label>運動
-        <select name="sport" defaultValue={v('sport')}>
-          {SPORTS.map((s) => <option key={s}>{s}</option>)}
-        </select>
-      </label>
-      <label>比賽日<input name="race_date" type="date" defaultValue={v('race_date')} required /></label>
-      <label>縣市
-        <select name="county" defaultValue={v('county')} required>
-          <option value="">請選擇</option>
-          {COUNTIES.map((c) => <option key={c}>{c}</option>)}
-        </select>
-      </label>
-      <label className="wide">地點<input name="venue" defaultValue={v('venue')} /></label>
-      <label className="wide">距離（公里，用逗號分隔）<input name="distances_km" defaultValue={initial.distances_km.join(', ')} placeholder="5, 10, 21.0975" /></label>
-      <label>最低報名費<input name="fee_min" type="number" min="0" defaultValue={v('fee_min')} /></label>
-      <label>最高報名費<input name="fee_max" type="number" min="0" defaultValue={v('fee_max')} /></label>
-      <label className="wide">紀念品<input name="souvenirs" defaultValue={v('souvenirs')} /></label>
-      <fieldset className="wide">
-        <legend>賽事性質</legend>
+    <form className="grid gap-4 md:grid-cols-3" onSubmit={submit}>
+      <h1 className="text-2xl font-black md:col-span-3">{initial.id ? '編輯賽事' : '新增賽事'}</h1>
+      <Field label="名稱" wide><Input name="name" defaultValue={v('name')} required /></Field>
+      <div className="grid gap-1.5">
+        <Label htmlFor="sport">運動</Label>
+        <Select name="sport" defaultValue={initial.sport ?? undefined}>
+          <SelectTrigger id="sport" className="w-full"><SelectValue placeholder="請選擇" /></SelectTrigger>
+          <SelectContent>{SPORTS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+        </Select>
+      </div>
+      <DateField name="race_date" label="比賽日" initial={initial.race_date} required />
+      <div className="grid gap-1.5">
+        <Label htmlFor="county">縣市</Label>
+        <Select name="county" defaultValue={initial.county || undefined} required>
+          <SelectTrigger id="county" className="w-full"><SelectValue placeholder="請選擇" /></SelectTrigger>
+          <SelectContent position="popper" className="max-h-72">{COUNTIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+        </Select>
+      </div>
+      <Field label="地點" wide><Input name="venue" defaultValue={v('venue')} /></Field>
+      <Field label="距離（公里，用逗號分隔）" wide><Input name="distances_km" defaultValue={initial.distances_km.join(', ')} placeholder="5, 10, 21.0975" /></Field>
+      <Field label="最低報名費"><Input name="fee_min" type="number" min="0" inputMode="numeric" defaultValue={v('fee_min')} /></Field>
+      <Field label="最高報名費"><Input name="fee_max" type="number" min="0" inputMode="numeric" defaultValue={v('fee_max')} /></Field>
+      <Field label="紀念品" wide><Input name="souvenirs" defaultValue={v('souvenirs')} /></Field>
+      <fieldset className="flex flex-wrap gap-x-5 gap-y-2 rounded-md border p-3 md:col-span-3">
+        <legend className="px-1">賽事性質</legend>
         {TAGS.map((t) => (
-          <label key={t} className="check"><input type="checkbox" name="tags" value={t} defaultChecked={initial.tags.includes(t)} />{t}</label>
+          <Label key={t} className="font-normal"><Checkbox name="tags" value={t} defaultChecked={initial.tags.includes(t)} />{t}</Label>
         ))}
       </fieldset>
-      <label className="wide">報名網址<input name="signup_url" type="url" defaultValue={v('signup_url')} required /></label>
-      <label className="wide">主視覺圖片網址<input name="image_url" type="url" defaultValue={v('image_url')} /></label>
-      <label className="wide">官方網站<input name="official_url" type="url" defaultValue={v('official_url')} /></label>
-      <label className="wide">粉絲專頁<input name="social_url" type="url" defaultValue={v('social_url')} /></label>
-      <label>報名開始<input name="signup_open" type="date" defaultValue={v('signup_open')} /></label>
-      <label>報名截止<input name="signup_close" type="date" defaultValue={v('signup_close')} /></label>
-      <label className="check"><input type="checkbox" name="is_race" defaultChecked={initial.is_race} />是實體賽事</label>
-      <label className="check"><input type="checkbox" name="hidden" defaultChecked={initial.hidden} />隱藏（不在前台顯示）</label>
-      {error && <p className="error wide" role="alert">{error}</p>}
-      <div className="wide admin-actions">
-        <button className="bb-btn bb-btn--primary" disabled={saving}>{saving ? '儲存中…' : '儲存賽事'}</button>
-        <button type="button" className="bb-btn" onClick={onCancel}>取消</button>
+      <Field label="報名網址" wide><Input name="signup_url" type="url" defaultValue={v('signup_url')} required /></Field>
+      <Field label="主視覺圖片網址" wide><Input name="image_url" type="url" defaultValue={v('image_url')} /></Field>
+      <Field label="官方網站" wide><Input name="official_url" type="url" defaultValue={v('official_url')} /></Field>
+      <Field label="粉絲專頁" wide><Input name="social_url" type="url" defaultValue={v('social_url')} /></Field>
+      <DateField name="signup_open" label="報名開始" initial={initial.signup_open} />
+      <DateField name="signup_close" label="報名截止" initial={initial.signup_close} />
+      <div className="flex flex-wrap gap-x-6 gap-y-2 md:col-span-3">
+        <Label className="font-normal"><Checkbox name="is_race" defaultChecked={initial.is_race} />是實體賽事</Label>
+        <Label className="font-normal"><Checkbox name="hidden" defaultChecked={initial.hidden} />隱藏（不在前台顯示）</Label>
+      </div>
+      {error && <div className="md:col-span-3"><ErrorText>{error}</ErrorText></div>}
+      <div className="flex gap-3 md:col-span-3">
+        <Button disabled={saving}>{saving ? '儲存中…' : '儲存賽事'}</Button>
+        <Button type="button" variant="outline" onClick={onCancel}>取消</Button>
       </div>
     </form>
   )

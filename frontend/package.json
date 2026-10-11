@@ -10,9 +10,18 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "d3-geo": "^3.1.1",
+    "date-fns": "^4.4.0",
+    "lucide-react": "^1.55.0",
+    "radix-ui": "^1.7.0",
     "react": "^19.2.8",
+    "react-day-picker": "^10.0.2",
     "react-dom": "^19.2.8",
+    "tailwind-merge": "^3.7.0",
+    "tailwindcss": "^4.3.3",
     "taiwan-atlas": "^2021.9.20",
     "topojson-client": "^3.1.0"
   },

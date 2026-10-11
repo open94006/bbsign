@@ -16,11 +16,14 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-h1, h2, h3, p { margin: 0; }
-button, input, select { font: inherit; color: inherit; }
 [hidden] { display: none !important; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-:focus-visible { outline: 2px solid var(--sunrise); outline-offset: 2px; }
+/* 放在 layer 裡：管理頁的 Tailwind utility 才蓋得過（unlayered 一律贏 layered） */
+@layer base {
+  h1, h2, h3, p { margin: 0; }
+  button, input, select { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--sunrise); outline-offset: 2px; }
+}
 
 /* ---------- 首頁：一個畫面高，不捲動 ---------- */
 
@@ -156,48 +159,6 @@ button, input, select { font: inherit; color: inherit; }
   .home-map { padding: 0; }
   .home-actions { grid-area: actions; padding-bottom: var(--space-4); }
   .home-actions .bb-btn:not(.bb-btn--quiet) { flex: 1; }
-}
-
-/* ---------- 管理頁（一般捲動頁面） ---------- */
-
-.admin {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: var(--space-5) var(--space-4) var(--space-8);
-}
-.admin h1 { font-size: 24px; font-weight: 900; }
-.admin-head { display: flex; align-items: center; gap: var(--space-4); }
-.admin-head h1 { margin-right: auto; }
-.admin-login { display: grid; gap: var(--space-3); max-width: 320px; margin-top: var(--space-5); }
-.admin-note { margin: var(--space-3) 0; color: var(--chalk-2); font-size: 14px; }
-.admin input:not([type='checkbox']),
-.admin select {
-  width: 100%;
-  padding: 8px 10px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-s);
-  background: var(--night-2);
-}
-.admin label { display: grid; gap: var(--space-1); font-size: 14px; }
-.admin-crawl { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin-bottom: var(--space-3); font-size: 14px; color: var(--chalk-2); }
-.admin-crawl .error { flex-basis: 100%; }
-.admin-search { max-width: 360px; margin-bottom: var(--space-3); }
-.admin-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-.admin-table th,
-.admin-table td { padding: var(--space-2); border-bottom: 1px solid var(--rule); text-align: left; vertical-align: top; }
-.admin-table th { color: var(--chalk-3); font-weight: 500; }
-.admin-table .muted td { color: var(--chalk-3); }
-.admin-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); }
-.admin-form h1,
-.admin-form .wide { grid-column: 1 / -1; }
-.admin-form fieldset { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); border: 1px solid var(--rule); border-radius: var(--radius-s); }
-.admin .check { display: flex; align-items: center; gap: 6px; }
-.admin-actions { display: flex; gap: var(--space-3); }
-.error { color: var(--urgent); }
-
-@media (max-width: 859px) {
-  .admin-form { grid-template-columns: minmax(0, 1fr); }
-  .admin-table { display: block; overflow-x: auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {

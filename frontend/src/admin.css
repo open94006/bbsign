@@ -1,0 +1,58 @@
+/* 管理頁專用：只有 /admin 會載入這支（Admin 是 lazy chunk），Tailwind preflight 不會影響前台 */
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+/* shadcn 語意色對應到站上的「破曉起跑」token（tokens.css） */
+:root {
+  --background: var(--night);
+  --foreground: var(--chalk);
+  --card: var(--night-2);
+  --card-foreground: var(--chalk);
+  --popover: var(--night-2);
+  --popover-foreground: var(--chalk);
+  --primary: var(--sunrise);
+  --primary-foreground: var(--on-sunrise);
+  --secondary: var(--night-3);
+  --secondary-foreground: var(--chalk);
+  --muted: var(--night-3);
+  --muted-foreground: var(--chalk-3);
+  --accent: var(--night-3);
+  --accent-foreground: var(--chalk);
+  --destructive: var(--urgent);
+  --border: var(--rule);
+  --input: var(--line);
+  --ring: var(--sunrise);
+  --radius: 0.5rem;
+}
+
+@theme inline {
+  --font-sans: var(--font-sans);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * { @apply border-border outline-ring/50; }
+  body { @apply bg-background text-foreground; }
+}
