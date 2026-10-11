@@ -176,8 +176,8 @@ const PAGES: Record<string, LazyExoticComponent<() => JSX.Element>> = {
 ### 5.5 `/tools` 小工具
 
 - `/tools` 目錄頁列出兩個工具；入口放頁尾，不打斷賽事主流程。
-- **羽球記分板**：734 行重寫樣式，保留 localStorage 續局和直向手機排版；加上 Screen Wake Lock，比賽中螢幕不會休眠（原生 API，不支援的瀏覽器就略過）。
-- **換算**：球速 mph↔km/h、重量 kg↔lb，同一頁兩區塊。
+- **羽球記分板**：規則抽成純函式 `tools/badminton.ts`（附 vitest），畫面重寫。保留單雙打、雙打發球輪轉、上一步、改球員名字、localStorage 續局（3 小時）；新增 Screen Wake Lock，比賽中螢幕不休眠。修掉原版兩個問題：局數在確認前就加上、取消後還能繼續加分；每局重設會把自訂名字洗回 A1、A2。手機直放、橫放都能一眼看完不用捲。確認對話框用原生 `confirm()`，規則用 `<details>`。
+- **換算**：球速 mph↔km/h、重量 kg↔lb，同一頁兩區塊，改哪邊算哪邊；係數用國際定義值（1 mi = 1.609344 km、1 lb = 0.45359237 kg）。
 
 ### 5.6 設計系統
 
@@ -224,7 +224,7 @@ const PAGES: Record<string, LazyExoticComponent<() => JSX.Element>> = {
 | **P2** 骨架 ✅ | lib 搬入、vitest 5（bbsign 是 vite 8）、`main.tsx` 路由、共用外框 `Page.tsx` + `pages.css`、狀況色 token | S | `npm test` 49 項全過；各路徑能開；首頁不載入子頁樣式 |
 | **P3** `/weather` ✅ | 跑步天氣頁；lib 拿掉 `color`／`emoji`／`brightness` 遺留欄位 | L | 縣市與 GPS 兩種模式；定位被拒、上游 503 有提示；手機排版通過 |
 | **P4** `/pace` + 賽事整合 ✅ | 配速頁、`RaceWeather`、配速連結 | M | 6 天內的賽事顯示比賽日天氣；超過 6 天不發請求；連結帶入距離 |
-| **P5** `/tools` | 羽球記分板、換算 | M | 記分板重整後能續局、螢幕不休眠 |
+| **P5** `/tools` ✅ | 羽球記分板、換算 | M | 記分板重整後能續局、螢幕不休眠；手機直放橫放一屏看完 |
 | **P6** 上線 | Secret Manager 建 CWA／MOENV 金鑰並掛進 `cloudbuild.yaml`、`deploy.sh`（**先建 secret 再改設定，否則部署會失敗**）；sitemap、README、頁首頁尾入口、z-running 301 | S | 舊網址 301 到對應頁 |
 | P7（可選） | 地圖點縣市時顯示今日跑步指數 | M | P1–P6 穩定再評估 |
 

@@ -1,0 +1,150 @@
+/* /tools 小工具：羽球記分板（bm-）與換算（cv-），tl- 是兩者共用。只用 tokens.css 的 token。 */
+
+.tl-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.tl-muted { color: var(--chalk-3); }
+
+/* ---------- 羽球記分板 ---------- */
+
+[data-team='A'] { --team: var(--urgent); }
+[data-team='B'] { --team: var(--run); }
+
+.bm { display: grid; gap: var(--space-4); }
+.bm-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.bm-sets { color: var(--chalk-2); }
+.bm-sets b { color: var(--team); font: 800 26px/1 var(--font-display); }
+
+.bm-status { min-height: 1.45em; }
+.bm-result {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--sunrise);
+  border-radius: var(--radius-m);
+  background: var(--night-2);
+}
+
+.bm-courts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+.bm-team {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 2px solid var(--rule);
+  border-radius: var(--radius-l);
+  background: var(--night-2);
+  transition: border-color var(--dur-short) var(--ease-out);
+}
+.bm-team[data-serving] { border-color: var(--team); }
+.bm-team__name { display: flex; align-items: center; gap: var(--space-2); color: var(--team); }
+.bm-badge { padding: 2px 10px; border-radius: var(--radius-pill); background: var(--team); color: var(--night); font-weight: 700; }
+
+.bm-score {
+  display: grid;
+  place-items: center;
+  min-height: 36dvh;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-m);
+  background: var(--night);
+  color: var(--chalk);
+  font: 800 clamp(96px, 18vw, 220px)/1 var(--font-display);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation; /* 連點不會被當成雙擊放大 */
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--dur-micro) var(--ease-out);
+}
+.bm-score:active { transform: scale(0.97); }
+.bm-score:disabled { opacity: 0.55; cursor: default; transform: none; }
+.bm-score:focus-visible { outline: 2px solid var(--sunrise); outline-offset: 2px; }
+
+.bm-players { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
+.bm-player {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  min-height: 56px;
+  padding: var(--space-2) var(--space-3);
+  overflow: hidden;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-m);
+  background: transparent;
+  color: var(--chalk);
+  font: 700 15px/1.3 var(--font-sans);
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.bm-player .t-caption { color: var(--chalk-3); font-weight: 400; }
+.bm-player[data-serving] { border-color: var(--team); background: var(--team); color: var(--night); }
+.bm-player[data-serving] .t-caption { color: var(--night); }
+input.bm-player { border-color: var(--chalk-2); font-size: 16px; cursor: text; } /* 16px：iOS 聚焦不放大 */
+
+.bm-rules { padding-top: var(--space-4); border-top: 1px solid var(--rule); }
+.bm-rules summary { cursor: pointer; }
+.bm-rules ul { display: grid; gap: var(--space-2); margin: var(--space-3) 0 0; padding-left: 1.2em; color: var(--chalk-2); }
+
+/* 手機上記分板要一眼看完不用捲：標題只留給螢幕閱讀器（同 .sr-only），比分區依剩下的高度分配 */
+@media (max-width: 599px) and (orientation: portrait), (orientation: landscape) and (max-height: 500px) {
+  .page:has(.bm) .page-main > h1 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .page:has(.bm) .page-main { gap: var(--space-3); padding-top: var(--space-4); }
+  .bm { gap: var(--space-3); }
+  .bm-team { padding: var(--space-3); gap: var(--space-2); }
+}
+
+/* 手機直放：上下兩隊 */
+@media (max-width: 599px) and (orientation: portrait) {
+  .bm-courts { grid-template-columns: minmax(0, 1fr); gap: var(--space-3); }
+  .bm-score { min-height: 18dvh; font-size: 96px; }
+}
+
+/* 手機橫放：畫面很矮，連網站導覽、說明、規則、頁尾都收起，只留記分 */
+@media (orientation: landscape) and (max-height: 500px) {
+  .page:has(.bm) .page-bar,
+  .page:has(.bm) .page-foot,
+  .bm > .t-caption,
+  .bm-rules { display: none; }
+  .page:has(.bm) .page-main { padding-top: var(--space-3); }
+  .bm { gap: var(--space-2); }
+  .bm-team { padding: var(--space-2) var(--space-3); }
+  .bm-score { min-height: 30dvh; font-size: 88px; }
+  .bm-player { min-height: 44px; }
+}
+
+/* ---------- 換算 ---------- */
+
+.cv-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-7); }
+.cv { display: grid; align-content: start; gap: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--rule); }
+.cv-fields { display: grid; gap: var(--space-3); }
+.cv-field { display: flex; align-items: center; gap: var(--space-3); }
+.cv-field input {
+  flex: 1;
+  min-width: 0;
+  min-height: 56px;
+  padding: 0 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--night);
+  color: var(--chalk);
+  font: 800 28px/1 var(--font-display);
+  font-variant-numeric: tabular-nums;
+  transition: border-color var(--dur-micro) var(--ease-out);
+}
+.cv-field input::placeholder { color: var(--chalk-3); }
+.cv-field input:hover { border-color: var(--chalk-2); }
+.cv-field .t-label { width: 3.5em; color: var(--chalk-2); }
+
+@media (max-width: 859px) {
+  .cv-list { grid-template-columns: minmax(0, 1fr); gap: var(--space-6); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bm-score,
+  .bm-team { transition: none; }
+}
