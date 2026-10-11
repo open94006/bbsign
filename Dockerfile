@@ -1,6 +1,6 @@
 # 同一個映像檔給兩種用途：
 #   Cloud Run 服務：預設指令，跑 API 並提供前端網頁
-#   Cloud Run Job：覆寫指令為 python -m crawl.run，每天爬一次
+#   Cloud Run Job：覆寫指令為 python -m crawl.run，由 Cloud Scheduler 定期觸發
 FROM node:22-alpine AS web
 WORKDIR /web
 COPY frontend/package.json frontend/package-lock.json ./
