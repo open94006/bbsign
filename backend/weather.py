@@ -11,7 +11,7 @@ from datetime import datetime, timedelta, timezone
 
 import certifi
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import JSONResponse
 
 import db
@@ -27,14 +27,15 @@ _tls = ssl.create_default_context(cafile=certifi.where())
 _tls.verify_flags &= ~ssl.VERIFY_X509_STRICT
 http = httpx.Client(verify=_tls, timeout=20)
 
-# 縣市白名單，也是縣市模式的代表座標（縣市政府所在地，挑最近測站用，不需要更精確）
+# 縣市白名單：(縣市政府所在地緯度, 經度, 鄉鎮 3 天預報資料集編號)。只給縣市時用政府所在地挑最近的鄉鎮；
+# 1 週預報的編號是 3 天的 +2（F-D0047-061 臺北市 3 天、-063 臺北市 1 週）
 COUNTIES = {
-    "臺北市": (25.04, 121.56), "新北市": (25.01, 121.46), "基隆市": (25.13, 121.74), "桃園市": (24.99, 121.30),
-    "新竹市": (24.81, 120.97), "新竹縣": (24.83, 121.01), "苗栗縣": (24.56, 120.82), "臺中市": (24.16, 120.65),
-    "彰化縣": (24.08, 120.54), "南投縣": (23.90, 120.69), "雲林縣": (23.70, 120.53), "嘉義市": (23.48, 120.45),
-    "嘉義縣": (23.46, 120.29), "臺南市": (22.99, 120.19), "高雄市": (22.62, 120.31), "屏東縣": (22.68, 120.49),
-    "宜蘭縣": (24.73, 121.76), "花蓮縣": (23.99, 121.61), "臺東縣": (22.76, 121.15), "澎湖縣": (23.57, 119.58),
-    "金門縣": (24.44, 118.32), "連江縣": (26.16, 119.95),
+    "臺北市": (25.04, 121.56, 61), "新北市": (25.01, 121.46, 69), "基隆市": (25.13, 121.74, 49), "桃園市": (24.99, 121.30, 5),
+    "新竹市": (24.81, 120.97, 53), "新竹縣": (24.83, 121.01, 9), "苗栗縣": (24.56, 120.82, 13), "臺中市": (24.16, 120.65, 73),
+    "彰化縣": (24.08, 120.54, 17), "南投縣": (23.90, 120.69, 21), "雲林縣": (23.70, 120.53, 25), "嘉義市": (23.48, 120.45, 57),
+    "嘉義縣": (23.46, 120.29, 29), "臺南市": (22.99, 120.19, 77), "高雄市": (22.62, 120.31, 65), "屏東縣": (22.68, 120.49, 33),
+    "宜蘭縣": (24.73, 121.76, 1), "花蓮縣": (23.99, 121.61, 41), "臺東縣": (22.76, 121.15, 37), "澎湖縣": (23.57, 119.58, 45),
+    "金門縣": (24.44, 118.32, 85), "連江縣": (26.16, 119.95, 81),
 }
 
 router = APIRouter()
@@ -119,14 +120,51 @@ def air_sites() -> list[dict]:
     return cached("bb:wx:aqi", 1200, fetch)
 
 
-def forecast(dataset: str, county: str) -> dict[str, list[dict]]:
-    """{元素名稱: [{start, end, ...ElementValue}]}；時間點資料（DataTime）的 end 是 None。"""
+def dataset(county: str, week: bool) -> str:
+    return f"F-D0047-{COUNTIES[county][2] + (2 if week else 0):03d}"
+
+
+def towns(county: str) -> list[dict]:
+    """縣市的鄉鎮清單與座標：只抓一個元素，整個縣市也才幾十 KB；鄉鎮很少變，一天更新一次。"""
     def fetch():
-        loc = cwa(dataset, LocationName=county)["Locations"][0]["Location"][0]
+        locs = cwa(dataset(county, True), ElementName="最高溫度")["Locations"][0]["Location"]
+        return [{"name": x["LocationName"], "lat": float(x["Latitude"]), "lon": float(x["Longitude"])} for x in locs]
+    return cached(f"bb:wx:towns:{county}", 86400, fetch)
+
+
+def forecast(county: str, town: str, week: bool) -> dict[str, list[dict]]:
+    """單一鄉鎮的預報 {元素名稱: [{start, end, ...ElementValue}]}；時間點資料（DataTime）的 end 是 None。
+    town 必須先經過 towns() 白名單。整個縣市一次抓最大 1.7 MB（高雄），所以依鄉鎮分開抓、分開快取。"""
+    def fetch():
+        loc = cwa(dataset(county, week), LocationName=town)["Locations"][0]["Location"][0]
         return {e["ElementName"]: [{"start": t.get("StartTime") or t["DataTime"], "end": t.get("EndTime"), **t["ElementValue"][0]}
                                    for t in e["Time"]] for e in loc["WeatherElement"]}
-    key, ttl = {"F-D0047-089": ("3d", 1800), "F-D0047-091": ("week", 3600)}[dataset]
-    return cached(f"bb:wx:{key}:{county}", ttl, fetch)
+    return cached(f"bb:wx:{'week' if week else '3d'}:{county}:{town}", 3600 if week else 1800, fetch)
+
+
+def town_in(ts: list[dict], text: str) -> dict | None:
+    """從賽事地點文字找鄉鎮：先找完整名稱（苓雅區），再找去掉區鄉鎮市的名稱（「苓雅運動園區」的苓雅）；
+    同時符合好幾個時取最早出現的。只比對這個縣市真的有的鄉鎮。"""
+    text = text.replace("台", "臺")
+    for names in ([t["name"] for t in ts], [t["name"][:-1] if len(t["name"]) > 2 else "" for t in ts]):
+        found = [(text.find(n), t) for n, t in zip(names, ts) if n and n in text]
+        if found:
+            return min(found, key=lambda x: x[0])[1]
+    return None
+
+
+def place(county: str, town: str | None, lat: float | None = None, lon: float | None = None, venue: str | None = None) -> dict:
+    """決定要看哪個鄉鎮：town 在白名單就用它；否則從 venue 文字找；都沒有就挑離 (lat, lon) 最近的鄉鎮
+    （沒給座標就用縣市政府所在地）。"""
+    ts = towns(county)
+    hit = next((t for t in ts if t["name"] == town), None) or (venue and town_in(ts, venue))
+    if hit:
+        return hit
+    seat = COUNTIES[county]
+    found = nearest(ts, lat if lat is not None else seat[0], lon if lon is not None else seat[1])
+    if not found:
+        raise HTTPException(503, "天氣資料暫時無法取得，請稍後再試")
+    return found
 
 
 def pick(f: dict, element: str, field: str, t: datetime):
@@ -148,18 +186,26 @@ def check_county(county: str) -> None:
 
 
 @router.get("/api/weather")
-def current(lat: float | None = None, lon: float | None = None, county: str | None = None):
+def current(lat: float | None = None, lon: float | None = None, county: str | None = None, town: str | None = None):
+    obs = [s for s in stations() if None not in (s["temp"], s["humidity"], s["wind"])]
     if county is not None:
         check_county(county)
-        lat, lon = COUNTIES[county]
+        area = place(county, town)
+        lat, lon = area["lat"], area["lon"]
     elif lat is None or lon is None or not in_taiwan(lat, lon):
         raise HTTPException(400, "請提供台灣範圍內的經緯度或縣市")
+    else:
+        # 定位：用最近測站判斷縣市，再挑縣市內最近的鄉鎮
+        st = nearest(obs, lat, lon)
+        if not st or st["county"] not in COUNTIES:
+            raise HTTPException(503, "天氣資料暫時無法取得，請稍後再試")
+        county = st["county"]
+        area = place(county, None, lat, lon)
 
-    st = nearest([s for s in stations() if None not in (s["temp"], s["humidity"], s["wind"])], lat, lon)
+    st = nearest(obs, lat, lon)
     if not st:
         raise HTTPException(503, "天氣資料暫時無法取得，請稍後再試")
-    county = county or st["county"]
-    f3, week = forecast("F-D0047-089", county), forecast("F-D0047-091", county)
+    f3, week = forecast(county, area["name"], False), forecast(county, area["name"], True)
     air = nearest(air_sites(), lat, lon)
     now = datetime.now(TW)
 
@@ -176,24 +222,29 @@ def current(lat: float | None = None, lon: float | None = None, county: str | No
         }
 
     hour = now.replace(minute=0, second=0, microsecond=0)
+    trend = [slot(hour + timedelta(hours=h)) for h in range(1, 7)]
+    # 預報剛發布時第一筆從下一個整點開始，「現在」查不到就用下一個整點的值
+    soon = lambda key, value: trend[0][key] if value is None else value  # noqa: E731
     return JSONResponse({
-        "location": st["county"] + st["town"],
+        "location": county + area["name"],
         "city": county,
+        "town": area["name"],
+        "towns": [t["name"] for t in towns(county)],  # 前端的鄉鎮選單
         "station": st["name"],
-        "lat": st["lat"],  # 測站座標，前端算日出日落用
-        "lon": st["lon"],
+        "lat": area["lat"],  # 鄉鎮座標，前端算日出日落用
+        "lon": area["lon"],
         "temperature": st["temp"],
         "humidity": st["humidity"],
         "windSpeed": kmh(st["wind"]),
         "windDeg": st["windDeg"],
         "pressure": st["pressure"],
-        "description": st["weather"] or pick(f3, "天氣現象", "Weather", now),
-        "weatherCode": pick(f3, "天氣現象", "WeatherCode", now),
-        "feelsLike": num(pick(f3, "體感溫度", "ApparentTemperature", now)),
-        "precipitationProbability": num(pick(f3, "3小時降雨機率", "ProbabilityOfPrecipitation", now)),
+        "description": st["weather"] or soon("description", pick(f3, "天氣現象", "Weather", now)),
+        "weatherCode": soon("weatherCode", pick(f3, "天氣現象", "WeatherCode", now)),
+        "feelsLike": soon("feelsLike", num(pick(f3, "體感溫度", "ApparentTemperature", now))),
+        "precipitationProbability": soon("precipitationProbability", num(pick(f3, "3小時降雨機率", "ProbabilityOfPrecipitation", now))),
         "uvIndex": num(pick(week, "紫外線指數", "UVIndex", now)),
         "uvLevel": pick(week, "紫外線指數", "UVExposureLevel", now),
-        "temperatureTrend6h": [slot(hour + timedelta(hours=h)) for h in range(1, 7)],
+        "temperatureTrend6h": trend,
         "airQuality": air and {
             "aqi": aqi_level(air["aqi"]), "aqiValue": air["aqi"], "description": air["status"], "station": air["name"],
             "components": {"pm2_5": air["pm2_5"], "pm10": air["pm10"], "o3": air["o3"]},
@@ -204,9 +255,10 @@ def current(lat: float | None = None, lon: float | None = None, county: str | No
 
 
 @router.get("/api/weather/week")
-def week(county: str):
+def week(county: str, town: str | None = None, venue: str | None = Query(None, max_length=200)):
     check_county(county)
-    f = forecast("F-D0047-091", county)
+    area = place(county, town, venue=venue)
+    f = forecast(county, area["name"], True)
     periods = []
     for x in f.get("天氣現象", []):
         t = datetime.fromisoformat(x["start"])
@@ -222,4 +274,4 @@ def week(county: str):
             "precipitationProbability": num(pick(f, "12小時降雨機率", "ProbabilityOfPrecipitation", t)),
             "uvIndex": num(pick(f, "紫外線指數", "UVIndex", t)),
         })
-    return JSONResponse({"county": county, "periods": periods}, headers=HEADERS)
+    return JSONResponse({"county": county, "town": area["name"], "periods": periods}, headers=HEADERS)

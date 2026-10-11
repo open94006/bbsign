@@ -121,6 +121,19 @@ bbsign/
 | MOENV `aqx_p_432` | ✅ 84 站，有經緯度、`aqi`、`pm2.5`、`status`，AQI 無缺值。 |
 | 結論 | **OpenWeatherMap 可以完全拿掉**，不需要備援。 |
 
+### 4.6 鄉鎮層級預報（2026-10-11 追加）
+
+預報從縣市層級（`F-D0047-089`／`-091`）改成鄉鎮層級：每個縣市有自己的資料集，3 天預報是 `F-D0047-001`、`-005`…`-085`（奇數），1 週是 3 天的編號 +2，對照寫在 `COUNTIES`。全台 368 個鄉鎮。
+
+| 項目 | 做法 |
+| --- | --- |
+| 鄉鎮清單與座標 | 1 週資料集只抓「最高溫度」一個元素（整個縣市幾十 KB），快取 `bb:wx:towns:<縣市>` 一天 |
+| 預報 | 依 `LocationName=<鄉鎮>` 單獨抓（整個縣市最大 1.7 MB），快取 `bb:wx:3d:<縣市>:<鄉鎮>` 30 分、`bb:wx:week:<縣市>:<鄉鎮>` 60 分 |
+| 選鄉鎮 | `town` 要在該縣市的鄉鎮清單內；不在就當沒給，用縣市政府所在地最近的鄉鎮 |
+| 定位 | 最近測站決定縣市，再挑縣市內最近的鄉鎮 |
+| 賽事 | `/api/weather/week?county=&venue=`：從地點文字比對鄉鎮，先比完整名稱（苓雅區）再比去掉區鄉鎮市的名稱（苓雅），取最早出現的；本機 224 場有 163 場比對到，其餘（地標名稱）用縣市政府所在地 |
+| 剛發布時 | 鄉鎮預報第一筆從下一個整點開始，「現在」查不到的欄位用下一個整點的值 |
+
 ### 4.5 安全
 
 - 使用者輸入不進上游 URL → 流量再大，上游呼叫次數都固定（資料集數 ÷ TTL），金鑰不會被刷爆，不需要另外限流。
@@ -210,7 +223,7 @@ const PAGES: Record<string, LazyExoticComponent<() => JSX.Element>> = {
    | `/weight`、`/pitching` | `/tools/convert` |
    | 其他 | `/` |
 
-   優先用 DNS 供應商的轉址規則（零程式碼）；做不到才在 FastAPI 加一個依 Host 轉址的 middleware。
+   z-running.com 的 DNS 在 Namecheap（指向 `ghs.googlehosted.com`，是 Cloud Run 網域對應），Namecheap 的轉址做不到逐頁對應，所以改在 `main.py` 加依 Host 轉址的 middleware，再把網域對應從 z-running 服務改指到 bbsign 服務；DNS 不用動。
 4. 301 確認生效後，停掉 z-running 的 Cloud Run 服務，撤銷 OpenWeatherMap、Google Maps、OpenCage 金鑰。
 
 ## 8. 階段
@@ -225,7 +238,7 @@ const PAGES: Record<string, LazyExoticComponent<() => JSX.Element>> = {
 | **P3** `/weather` ✅ | 跑步天氣頁；lib 拿掉 `color`／`emoji`／`brightness` 遺留欄位 | L | 縣市與 GPS 兩種模式；定位被拒、上游 503 有提示；手機排版通過 |
 | **P4** `/pace` + 賽事整合 ✅ | 配速頁、`RaceWeather`、配速連結 | M | 6 天內的賽事顯示比賽日天氣；超過 6 天不發請求；連結帶入距離 |
 | **P5** `/tools` ✅ | 羽球記分板、換算 | M | 記分板重整後能續局、螢幕不休眠；手機直放橫放一屏看完 |
-| **P6** 上線 | Secret Manager 建 CWA／MOENV 金鑰並掛進 `cloudbuild.yaml`、`deploy.sh`（**先建 secret 再改設定，否則部署會失敗**）；sitemap、README、頁首頁尾入口、z-running 301 | S | 舊網址 301 到對應頁 |
+| **P6** 上線（程式碼 ✅，雲端設定待做） | 全站導覽（首頁右上角也有）；sitemap、README；`cloudbuild.yaml` 用 `--update-secrets` 帶入 `CWA_API_KEY`、`MOENV_API_KEY`；`main.py` 依 Host 把 z-running.com 逐頁 301。雲端：確認／建立 secret → 合併部署 → z-running.com 網域對應改指 bbsign 服務 → 停掉 z-running 服務、撤銷 OWM／Google／OpenCage 金鑰 | S | 舊網址 301 到對應頁 |
 | P7（可選） | 地圖點縣市時顯示今日跑步指數 | M | P1–P6 穩定再評估 |
 
 ## 9. 風險
@@ -235,7 +248,7 @@ const PAGES: Record<string, LazyExoticComponent<() => JSX.Element>> = {
 | CWA 欄位不足以完全取代 OWM | P0 已驗證足夠 |
 | Python 3.13 對政府憑證驗證失敗 | 自訂 SSL context，只放寬 strict 旗標（見 4.4） |
 | CWA／MOENV 維護或限流 | 整包快取，使用者流量不會打到上游；失敗時前端顯示 Notice |
-| 一週預報只到縣市，山區賽事誤差大 | 畫面上明確標示「縣市預報」 |
+| 預報解析度 | 已改成鄉鎮層級（見 4.6）；賽事地點比對不到鄉鎮時標示用了哪個鄉鎮的預報 |
 | 設計風格差太多（亮紙 vs 暗夜） | 只搬 lib 邏輯，畫面全部依 BB Sign 規範重寫 |
 | z-running.com 的既有流量 | 逐頁 301，不是全部導到首頁 |
 

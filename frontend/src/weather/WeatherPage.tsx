@@ -20,6 +20,8 @@ type Slot = {
 type Weather = {
   location: string
   city: string
+  town: string
+  towns: string[]
   station: string
   lat: number
   lon: number
@@ -38,7 +40,7 @@ type Weather = {
   source: string
 }
 
-type Query = { county: string } | { lat: number; lon: number }
+type Query = { county: string; town?: string } | { lat: number; lon: number }
 
 const TOLERANCE: [RunnerTolerance, string][] = [
   ['heat', '怕熱'],
@@ -72,7 +74,8 @@ const round2 = (x: number) => Math.round(x * 100) / 100
 export default function WeatherPage() {
   const [query, setQuery] = useState<Query>(() => {
     const saved = load('bb:wx:county')
-    return { county: saved && COUNTIES.includes(saved) ? saved : '臺北市' }
+    // 鄉鎮由後端驗證，不在白名單會改用縣市政府所在地
+    return saved && COUNTIES.includes(saved) ? { county: saved, town: load('bb:wx:town') ?? undefined } : { county: '臺北市' }
   })
   const [data, setData] = useState<Weather | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -90,7 +93,7 @@ export default function WeatherPage() {
 
   useEffect(() => {
     const ctrl = new AbortController()
-    const qs = 'county' in query ? `county=${encodeURIComponent(query.county)}` : `lat=${query.lat}&lon=${query.lon}`
+    const qs = 'county' in query ? new URLSearchParams({ county: query.county, ...(query.town && { town: query.town }) }) : `lat=${query.lat}&lon=${query.lon}`
     fetch(`/api/weather?${qs}`, { signal: ctrl.signal })
       .then(async (r) => {
         const body = await r.json().catch(() => null)
@@ -101,6 +104,7 @@ export default function WeatherPage() {
       .then((d) => {
         setData(d)
         save('bb:wx:county', d.city)
+        save('bb:wx:town', d.town)
       })
       .catch((e: Error) => !ctrl.signal.aborted && setError(e.message))
       .finally(() => !ctrl.signal.aborted && setLoading(false))
@@ -144,6 +148,18 @@ export default function WeatherPage() {
             <option key={c}>{c}</option>
           ))}
         </select>
+        {data && (
+          <>
+            <label className="sr-only" htmlFor="wx-town">
+              鄉鎮市區
+            </label>
+            <select id="wx-town" className="wx-select" value={data.town} onChange={(e) => choose({ county: data.city, town: e.target.value })}>
+              {data.towns.map((t) => (
+                <option key={t}>{t}</option>
+              ))}
+            </select>
+          </>
+        )}
         <button type="button" className="bb-btn" onClick={locate} aria-busy={locating} disabled={locating}>
           {locating ? '定位中…' : '用我的位置'}
         </button>
@@ -323,7 +339,7 @@ function Report({ d, tolerance, minutes, setMinutes, busy }: ReportProps) {
       </div>
 
       <p className="t-caption wx-muted">
-        資料來源：{d.source}。6 小時預報為縣市層級，山區與海邊實際狀況可能不同。
+        資料來源：{d.source}。預報為{d.town}的鄉鎮預報，即時觀測來自最近的{d.station}測站。
       </p>
     </div>
   )

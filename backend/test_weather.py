@@ -1,6 +1,7 @@
 """跑步天氣的自我檢查（在 backend/ 底下執行：python test_weather.py）。
 
 - 一律跑：缺值處理、最近測站、台灣範圍、AQI 換算、縣市白名單、預報時間對應
+- 上游實測含鄉鎮：指定鄉鎮、不合法鄉鎮退回縣市政府所在地、鄉鎮一週預報
 - 有 CWA_API_KEY、MOENV_API_KEY：實際打上游，確認欄位都還在
 """
 import os
@@ -36,6 +37,13 @@ def check_pure() -> None:
     assert weather.pick(f, "段", "v", t0 + timedelta(hours=7)) is None
     assert weather.pick(f, "沒有", "v", t0) is None
 
+    ts = [{"name": n} for n in ("苓雅區", "新興區", "東區", "大安區", "臺東市")]
+    town = lambda text: (weather.town_in(ts, text) or {}).get("name")  # noqa: E731
+    assert town("高雄市苓雅運動園區田徑場") == "苓雅區", "沒寫「區」也要認得"
+    assert town("新興區中正路，終點苓雅區") == "新興區", "取最早出現的"
+    assert town("台東市體育場") == "臺東市"
+    assert town("園區東側") is None, "一個字的名稱不比對（東區→東）"
+
 
 def check_validation() -> None:
     assert client.get("/api/weather").status_code == 400
@@ -52,13 +60,22 @@ def check_live() -> None:
     d = r.json()
     for k in ("temperature", "humidity", "windSpeed", "feelsLike", "description"):
         assert d[k] is not None, f"缺 {k}"
-    assert d["city"] == "臺北市" and len(d["temperatureTrend6h"]) == 6
+    assert d["city"] == "臺北市" and d["town"] in d["towns"] and len(d["temperatureTrend6h"]) == 6
     assert all(s["temperature"] is not None for s in d["temperatureTrend6h"]), "6 小時趨勢缺溫度"
     assert d["airQuality"] and 1 <= d["airQuality"]["aqi"] <= 5
 
     r = client.get("/api/weather", params={"lat": 24.44, "lon": 118.32})  # 金門
     assert r.status_code == 200 and r.json()["city"] == "金門縣", r.text
+    r = client.get("/api/weather", params={"county": "高雄市", "town": "鳳山區"})
+    assert r.status_code == 200 and r.json()["location"] == "高雄市鳳山區", r.text
+    r = client.get("/api/weather", params={"county": "高雄市", "town": "不存在區"})
+    assert r.status_code == 200 and r.json()["town"] in r.json()["towns"], "不在白名單的鄉鎮要退回縣市政府所在地"
 
+    wk = client.get("/api/weather/week", params={"county": "臺南市", "town": "新營區"}).json()
+    assert wk["town"] == "新營區", wk
+    wk = client.get("/api/weather/week", params={"county": "高雄市", "venue": "苓雅運動園區田徑場"}).json()
+    assert wk["town"] == "苓雅區", wk
+    assert client.get("/api/weather/week", params={"county": "高雄市", "venue": "長" * 201}).status_code == 422
     w = client.get("/api/weather/week", params={"county": "澎湖縣"}).json()["periods"]
     assert len(w) >= 13, len(w)
     assert all(p["maxTemp"] is not None for p in w), "每段都要有最高溫"

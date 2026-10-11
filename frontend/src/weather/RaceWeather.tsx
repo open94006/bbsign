@@ -22,20 +22,24 @@ export default function RaceWeather({ e, today }: { e: RaceEvent; today: string 
   const days = (Date.parse(e.race_date) - Date.parse(today)) / 86400000
   const soon = days >= 0 && days <= FORECAST_DAYS
   const [p, setP] = useState<Period | null | undefined>(undefined) // undefined 載入中、null 抓不到
+  const [town, setTown] = useState('')
 
   useEffect(() => {
     if (!soon) return
     const ctrl = new AbortController()
-    fetch(`/api/weather/week?county=${encodeURIComponent(e.county)}`, { signal: ctrl.signal })
+    // 後端從地點文字比對鄉鎮（苓雅運動園區 → 苓雅區），比對不到就用縣市政府所在的鄉鎮
+    const qs = new URLSearchParams({ county: e.county, ...(e.venue && { venue: e.venue.slice(0, 200) }) })
+    fetch(`/api/weather/week?${qs}`, { signal: ctrl.signal })
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-      .then((d: { periods: Period[] }) => {
+      .then((d: { town: string; periods: Period[] }) => {
+        setTown(d.town)
         const sameDay = d.periods.filter((x) => x.start.startsWith(e.race_date))
         // 白天時段（06–18 點開始）優先；比賽當天下午才看就只剩傍晚那段
         setP(sameDay.find((x) => Number(x.start.slice(11, 13)) < 18) ?? sameDay[0] ?? null)
       })
       .catch(() => !ctrl.signal.aborted && setP(null))
     return () => ctrl.abort()
-  }, [soon, e.county, e.race_date])
+  }, [soon, e.county, e.venue, e.race_date])
 
   let text: string
   if (!soon) text = '比賽前一週會出現天氣預報'
@@ -56,7 +60,10 @@ export default function RaceWeather({ e, today }: { e: RaceEvent; today: string 
         {soon && p && (
           <>
             <br />
-            <span className="bb-source t-caption">縣市層級預報，山區與海邊可能不同</span>
+            <span className="bb-source t-caption">
+              {e.county}
+              {town}預報
+            </span>
           </>
         )}
       </dd>
