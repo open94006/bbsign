@@ -28,7 +28,7 @@ export default function Page({ title, description, children }: Props) {
         <h1 className="t-headline">{title}</h1>
         {children}
       </main>
-      <footer className="page-foot t-caption">BB Sign 比比賽・國內賽事報名資訊平台</footer>
+      <footer className="page-foot t-caption">© {new Date().getFullYear()} BB Sign 比比賽・國內賽事報名資訊平台</footer>
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Page from '../Page'
 import { START, gameWinner, matchWinner, point, serveSide, type Match, type Team } from './badminton'
 import './tools.css'
@@ -42,6 +42,7 @@ function useWakeLock() {
 export default function Badminton() {
   const [{ m, history }, setGame] = useState(load)
   const [editing, setEditing] = useState<{ t: Team; i: 0 | 1 } | null>(null)
+  const rules = useRef<HTMLDialogElement>(null)
   useWakeLock()
 
   useEffect(() => {
@@ -165,17 +166,30 @@ export default function Badminton() {
 
         <p className="t-caption tl-muted">點比分加一分。比分存在這台裝置上，重新整理也不會遺失；比賽中螢幕不會自動關閉。</p>
 
-        <details className="bm-rules">
-          <summary className="t-title">規則快速查閱</summary>
-          <ul className="t-body">
-            <li>三局兩勝，每球得分制，先拿 21 分且領先 2 分贏一局；29 平時先拿到 30 分的贏。</li>
-            <li>發球方分數偶數站右區、奇數站左區（右偶左奇）。</li>
-            <li>雙打一隊一次發球權：發球方得分就換位繼續發，失分就換對方發球。</li>
-            <li>發球瞬間擊球點要低於腰（最低一根肋骨），拍桿朝下，動作連續不可停頓，雙腳不可離地或踩線。</li>
-            <li>比賽中球拍、身體不可觸網，也不可在球過網前把拍子伸過網擊球。</li>
-            <li>單打場地走內側長、外側窄；雙打走外側寬、發球區較短。</li>
-          </ul>
-        </details>
+        <button type="button" className="bb-btn bm-rules-open" aria-haspopup="dialog" onClick={() => rules.current?.showModal()}>
+          規則快速查閱
+        </button>
+        {/* 點背景（dialog 本身，不是內容）就關閉；Esc 由瀏覽器處理 */}
+        <dialog ref={rules} className="bb-dialog bm-rules" aria-labelledby="bm-rules-title" onClick={(e) => e.target === e.currentTarget && rules.current?.close()}>
+          <div className="bb-dialog__body">
+            <header className="bb-dialog__head">
+              <h2 id="bm-rules-title" className="t-title">
+                規則快速查閱
+              </h2>
+              <button type="button" className="bb-icon-btn bb-icon-btn--s bb-icon-btn--close" aria-label="關閉" onClick={() => rules.current?.close()}>
+                ×
+              </button>
+            </header>
+            <ul className="t-body">
+              <li>三局兩勝，每球得分制，先拿 21 分且領先 2 分贏一局；29 平時先拿到 30 分的贏。</li>
+              <li>發球方分數偶數站右區、奇數站左區（右偶左奇）。</li>
+              <li>雙打一隊一次發球權：發球方得分就換位繼續發，失分就換對方發球。</li>
+              <li>發球瞬間擊球點要低於腰（最低一根肋骨），拍桿朝下，動作連續不可停頓，雙腳不可離地或踩線。</li>
+              <li>比賽中球拍、身體不可觸網，也不可在球過網前把拍子伸過網擊球。</li>
+              <li>單打場地走內側長、外側窄；雙打走外側寬、發球區較短。</li>
+            </ul>
+          </div>
+        </dialog>
       </div>
     </Page>
   )

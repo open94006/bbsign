@@ -418,6 +418,38 @@
     opacity: 0.9;
 }
 
+/* 一般彈窗：原生 <dialog> + showModal()，點背景關閉由各頁自己處理 */
+.bb-dialog {
+    width: min(520px, calc(100vw - 32px));
+    max-height: calc(100dvh - 32px);
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-m);
+    background: var(--night-2);
+    color: var(--chalk);
+}
+.bb-dialog[open] {
+    animation: bb-pop var(--dur-short) var(--ease-out);
+}
+.bb-dialog::backdrop {
+    background: var(--night);
+    opacity: 0.8;
+}
+.bb-dialog__body {
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--space-5);
+}
+.bb-dialog__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+.bb-dialog__head h2 {
+    margin: 0;
+}
+
 /* 完整主視覺彈窗：鋪滿畫面，任何點擊、滾輪、左右鍵都關閉 */
 .bb-lightbox {
     width: 100vw;

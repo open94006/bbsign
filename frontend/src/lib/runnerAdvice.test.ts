@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getClothingAdvice, getCompassDirection, getHydrationAdvice } from './runnerAdvice';
+import { getAqiBand, getCompassDirection } from './runnerAdvice';
 
 describe('getCompassDirection - 風向轉 16 方位', () => {
     it('0 度為北', () => {
@@ -31,40 +31,19 @@ describe('getCompassDirection - 風向轉 16 方位', () => {
     });
 });
 
-describe('getClothingAdvice - 穿著建議（穿得比體感冷 10°C 原則）', () => {
-    it('體感 > 25°C 建議背心短褲', () => {
-        expect(getClothingAdvice(28).title).toBe('背心 + 短褲');
+describe('getAqiBand - 環境部 AQI 六級', () => {
+    it('級距上限歸在該級', () => {
+        expect(getAqiBand(50).index).toBe(0);
+        expect(getAqiBand(51).index).toBe(1);
+        expect(getAqiBand(150).index).toBe(2);
+        expect(getAqiBand(301).index).toBe(5);
     });
 
-    it('體感 15-25°C 建議短袖', () => {
-        expect(getClothingAdvice(20).title).toBe('短袖 + 短褲');
-    });
-
-    it('體感 5-15°C 建議長袖薄外套', () => {
-        expect(getClothingAdvice(10).title).toBe('長袖薄外套');
-    });
-
-    it('體感 < 5°C 建議保暖層+手套', () => {
-        expect(getClothingAdvice(2).title).toBe('保暖層 + 手套');
-    });
-});
-
-describe('getHydrationAdvice - 補水量建議', () => {
-    it('舒適天氣跑 60 分鐘，建議 400-500 ml', () => {
-        const result = getHydrationAdvice(20, 10, 60);
-        expect(result.minMl).toBe(400);
-        expect(result.maxMl).toBe(500);
-    });
-
-    it('嚴重悶熱跑 60 分鐘，建議量應高於舒適天氣', () => {
-        const comfortable = getHydrationAdvice(20, 10, 60);
-        const severe = getHydrationAdvice(32, 26, 60);
-        expect(severe.minMl).toBeGreaterThan(comfortable.minMl);
-    });
-
-    it('時長加倍，建議量也應等比放大', () => {
-        const result30 = getHydrationAdvice(20, 10, 30);
-        const result60 = getHydrationAdvice(20, 10, 60);
-        expect(result60.minMl).toBe(result30.minMl * 2);
+    it('刻度位置：每級各佔 1/6，超過 500 停在最右', () => {
+        expect(getAqiBand(0).position).toBe(0);
+        expect(getAqiBand(25).position).toBeCloseTo(1 / 12);
+        expect(getAqiBand(100).position).toBeCloseTo(2 / 6);
+        expect(getAqiBand(250).position).toBeCloseTo(4.5 / 6);
+        expect(getAqiBand(800).position).toBe(1);
     });
 });

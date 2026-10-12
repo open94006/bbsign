@@ -86,9 +86,8 @@
 .bm-player[data-serving] .t-caption { color: var(--night); }
 input.bm-player { border-color: var(--chalk-2); font-size: 16px; cursor: text; } /* 16px：iOS 聚焦不放大 */
 
-.bm-rules { padding-top: var(--space-4); border-top: 1px solid var(--rule); }
-.bm-rules summary { cursor: pointer; }
-.bm-rules ul { display: grid; gap: var(--space-2); margin: var(--space-3) 0 0; padding-left: 1.2em; color: var(--chalk-2); }
+.bm-rules-open { justify-self: start; }
+.bm-rules ul { display: grid; gap: var(--space-2); margin: 0; padding-left: 1.2em; color: var(--chalk-2); }
 
 /* 手機上記分板要一眼看完不用捲：標題只留給螢幕閱讀器（同 .sr-only），比分區依剩下的高度分配 */
 @media (max-width: 599px) and (orientation: portrait), (orientation: landscape) and (max-height: 500px) {
@@ -109,7 +108,7 @@ input.bm-player { border-color: var(--chalk-2); font-size: 16px; cursor: text; }
   .page:has(.bm) .page-bar,
   .page:has(.bm) .page-foot,
   .bm > .t-caption,
-  .bm-rules { display: none; }
+  .bm-rules-open { display: none; }
   .page:has(.bm) .page-main { padding-top: var(--space-3); }
   .bm { gap: var(--space-2); }
   .bm-team { padding: var(--space-2) var(--space-3); }

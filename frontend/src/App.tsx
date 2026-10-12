@@ -163,6 +163,7 @@ export default function App() {
 
       <footer className="home-foot t-caption">
         資料整理自全統運動、中華民國路跑協會、筆記報名、樂活報名網、眾點資訊、運動筆記。名額、費用與最新公告以各報名網站為準。
+        <br />© {new Date().getFullYear()} BB Sign 比比賽
       </footer>
 
       <RaceDrawer

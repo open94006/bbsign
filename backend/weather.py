@@ -115,7 +115,8 @@ def air_sites() -> list[dict]:
         r = http.get(MOENV, params={"api_key": os.environ.get("MOENV_API_KEY", ""), "limit": 1000, "format": "JSON"})
         r.raise_for_status()
         rows = [{"name": x["sitename"], "lat": num(x["latitude"]), "lon": num(x["longitude"]), "aqi": num(x["aqi"]),
-                 "status": x["status"], "pm2_5": num(x["pm2.5"]), "pm10": num(x["pm10"]), "o3": num(x["o3"])} for x in r.json()]
+                 "status": x["status"], "pm2_5": num(x["pm2.5"]), "pm10": num(x["pm10"]), "o3": num(x["o3"]),
+                 "pollutant": x.get("pollutant") or None} for x in r.json()]
         return [x for x in rows if None not in (x["lat"], x["lon"], x["aqi"])]
     return cached("bb:wx:aqi", 1200, fetch)
 
@@ -251,6 +252,7 @@ def current(lat: float | None = None, lon: float | None = None, county: str | No
         "airQuality": air and {
             "aqi": aqi_level(air["aqi"]), "aqiValue": air["aqi"], "description": air["status"], "station": air["name"],
             "components": {"pm2_5": air["pm2_5"], "pm10": air["pm10"], "o3": air["o3"]},
+            "pollutant": air.get("pollutant"),  # 主要污染物；AQI ≤ 50 時環境部給空字串。get：部署後快取裡還有舊資料
         },
         "timestamp": st["time"],
         "source": "中央氣象署、環境部",

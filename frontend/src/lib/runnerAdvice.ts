@@ -1,5 +1,3 @@
-import { getHeatStressLevel, type HeatStressLevel } from './runningCondition';
-
 // 16 方位羅盤，供風向具體化顯示（例如「東北風」）
 const COMPASS_DIRECTIONS = ['北', '北北東', '東北', '東北東', '東', '東南東', '東南', '南南東', '南', '南南西', '西南', '西南西', '西', '西北西', '西北', '北北西'];
 
@@ -9,31 +7,22 @@ export const getCompassDirection = (deg: number): string => {
     return COMPASS_DIRECTIONS[index];
 };
 
-export type ClothingAdvice = { title: string; description: string };
+// 環境部 AQI 六級（上限 50/100/150/200/300/500），活動建議改寫成跑者用語
+const AQI_BANDS: [number, string][] = [
+    [50, '空氣乾淨，放心到戶外跑。'],
+    [100, '可以照常跑；對空氣特別敏感的人留意咳嗽或呼吸急促。'],
+    [150, '有氣喘、過敏或心肺疾病的人改室內或降低強度；其他人避開長距離與間歇。'],
+    [200, '不建議戶外跑，改跑步機；非跑不可就縮短時間、放慢配速。'],
+    [300, '避免戶外運動。'],
+    [500, '避免外出，留在室內並關窗。'],
+];
 
-// 穿著建議：採用跑圈通用的「穿得比體感冷 10°C」原則分四檔
-export const getClothingAdvice = (feelsLikeC: number): ClothingAdvice => {
-    if (feelsLikeC > 25) return { title: '背心 + 短褲', description: '體感偏熱，選擇輕薄透氣排汗衣物，減少悶熱感。' };
-    if (feelsLikeC >= 15) return { title: '短袖 + 短褲', description: '體感舒適，一般短袖跑衣即可。' };
-    if (feelsLikeC >= 5) return { title: '長袖薄外套', description: '體感偏涼，建議長袖或薄外套，身體跑熱後會回溫，不需穿太厚。' };
-    return { title: '保暖層 + 手套', description: '體感寒冷，建議多層次穿著、加手套與頭帽，注意四肢末梢保暖。' };
-};
-
-export type HydrationAdvice = { minMl: number; maxMl: number; message: string };
-
-// 每小時建議補水量（ml）依「溫度+露點」悶熱分級
-const HYDRATION_ML_PER_HOUR: Record<HeatStressLevel, [number, number]> = {
-    none: [400, 500],
-    slight: [500, 600],
-    moderate: [600, 750],
-    severe: [750, 900],
-};
-
-export const getHydrationAdvice = (tempC: number, dewPointC: number, durationMinutes: number): HydrationAdvice => {
-    const [baseMin, baseMax] = HYDRATION_ML_PER_HOUR[getHeatStressLevel(tempC, dewPointC)];
-    const hours = durationMinutes / 60;
-    const roundTo50 = (ml: number) => Math.round(ml / 50) * 50;
-    const minMl = roundTo50(baseMin * hours);
-    const maxMl = roundTo50(baseMax * hours);
-    return { minMl, maxMl, message: `預計跑 ${durationMinutes} 分鐘，建議補水 ${minMl}-${maxMl} ml。` };
+// index 0–5 對應六級色；position 0–1 是在六等分刻度上的位置（每級各佔 1/6，級內線性）
+export const getAqiBand = (aqi: number) => {
+    const found = AQI_BANDS.findIndex(([max]) => aqi <= max);
+    const index = found === -1 ? AQI_BANDS.length - 1 : found;
+    const lo = index === 0 ? 0 : AQI_BANDS[index - 1][0];
+    const hi = AQI_BANDS[index][0];
+    const position = Math.min(1, (index + Math.max(0, aqi - lo) / (hi - lo)) / AQI_BANDS.length);
+    return { index, position, advice: AQI_BANDS[index][1] };
 };

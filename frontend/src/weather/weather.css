@@ -24,8 +24,7 @@
   transition: border-color var(--dur-micro) var(--ease-out);
 }
 .wx-select:hover { border-color: var(--chalk); }
-.wx-tolerance { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin-left: auto; }
-.wx-tolerance .t-label { color: var(--chalk-3); }
+.wx-weights-open { margin-left: auto; }
 
 .wx-notice {
   padding: var(--space-3) var(--space-4);
@@ -38,6 +37,8 @@
 .wx-report[aria-busy='true'] { opacity: 0.55; }
 
 .wx-hero { display: grid; gap: var(--space-3); }
+.wx-notes { display: grid; gap: var(--space-2); }
+.wx-notes p { margin: 0; }
 .wx-verdict { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2) var(--space-5); color: var(--c); }
 .wx-verdict__text { font: 900 80px/1.05 var(--font-sans); letter-spacing: -0.02em; }
 .wx-verdict__score { font: 800 56px/1 var(--font-display); font-variant-numeric: tabular-nums; }
@@ -52,6 +53,18 @@
 .wx-tag::before { content: '✓ '; color: var(--cond-excellent); }
 .wx-tag--warn { border-color: var(--urgent); color: var(--chalk); }
 .wx-tag--warn::before { content: '! '; color: var(--urgent); font-weight: 700; }
+.wx-tag--missing { border-style: dashed; }
+.wx-tag--missing::before { content: '? '; color: var(--chalk-3); }
+
+/* 評分權重彈窗（外框是 components.css 的 .bb-dialog）：四項點數，合計 100 */
+.wx-weights ul { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.wx-weights li { display: grid; grid-template-columns: minmax(0, 1fr) auto 3ch auto; align-items: center; gap: var(--space-2); padding: var(--space-2) 0; border-bottom: 1px solid var(--rule); }
+.wx-weights li > span { display: grid; gap: 2px; }
+.wx-weights__pts { font: 800 20px/1 var(--font-display); font-variant-numeric: tabular-nums; text-align: center; }
+.wx-weights .bb-icon-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+.wx-weights__left { margin: 0; color: var(--urgent); font-weight: 700; }
+.wx-weights__left[data-done] { color: var(--chalk-2); font-weight: 400; }
+.wx-weights footer { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
 
 .wx-stats { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--space-5) var(--space-4); margin: 0; }
 .wx-stats > div { display: grid; align-content: start; gap: var(--space-1); padding-top: var(--space-3); border-top: 1px solid var(--rule); }
@@ -88,11 +101,85 @@
 
 .wx-advice { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6) var(--space-7); }
 .wx-advice .wx-section { padding-top: var(--space-4); border-top: 1px solid var(--rule); }
-.wx-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.wx-advice > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+
+/* 日出日落：太陽沿弧線轉到觀測時間的位置 */
+.wx-sun { display: grid; gap: var(--space-3); max-width: 420px; }
+.wx-sun svg { display: block; width: 100%; overflow: visible; }
+.wx-sun__stop-warm { stop-color: var(--tri); stop-opacity: 0.4; }
+.wx-sun__stop-ground { stop-color: var(--tri); stop-opacity: 0.14; }
+.wx-sun__stop-clear { stop-color: var(--sunrise); stop-opacity: 0; }
+.wx-sun__stop-dawn { stop-color: var(--tri); }
+.wx-sun__stop-noon { stop-color: var(--sunrise); }
+.wx-sun__stop-dusk { stop-color: var(--urgent); }
+.wx-sun__stop-core { stop-color: var(--chalk); }
+.wx-sun__stop-line { stop-color: var(--line); }
+.wx-sun__sweep { fill: none; stroke: #fff; stroke-width: 90; stroke-dasharray: 1; animation: wx-arc 1.8s var(--ease-out) both; }
+.wx-sun__track { fill: none; stroke: var(--rule); stroke-width: 1.2; stroke-dasharray: 1.5 4; stroke-linecap: round; }
+.wx-sun__done { fill: none; stroke-width: 3; stroke-dasharray: 1; animation: wx-arc 1.8s var(--ease-out) both; }
+.wx-sun__noon { stroke: var(--rule); stroke-dasharray: 1.5 2; }
+.wx-sun__label { fill: var(--chalk-3); font: 500 6.5px var(--font-sans); text-anchor: middle; }
+.wx-sun__orbit { transform-box: view-box; transform-origin: 110px 100px; animation: wx-orbit 1.8s var(--ease-out) both; }
+.wx-sun__halo { transform-box: fill-box; transform-origin: center; opacity: 0.55; animation: wx-glow 3.2s ease-in-out 1.8s infinite; }
+.wx-sun__rays { stroke: var(--sunrise); stroke-width: 1.4; stroke-linecap: round; transform-box: fill-box; transform-origin: center; animation: wx-spin 30s linear infinite; }
+.wx-sun__stars { display: none; fill: var(--chalk); }
+.wx-sun__stars circle { animation: wx-twinkle 2.8s ease-in-out infinite; }
+.wx-sun[data-night] .wx-sun__stars { display: inline; }
+.wx-sun[data-night] .wx-sun__dome,
+.wx-sun[data-night] .wx-sun__ground,
+.wx-sun[data-night] .wx-sun__halo,
+.wx-sun[data-night] .wx-sun__rays { display: none; }
+.wx-sun[data-night] .wx-sun__disc { fill: var(--chalk-3); }
+.wx-sun[data-night] .wx-sun__done { stroke: var(--rule); }
+.wx-sun__times { display: flex; justify-content: space-between; align-items: center; gap: var(--space-2); font: 700 24px/1 var(--font-display); font-variant-numeric: tabular-nums; }
+.wx-sun__times > span:not(.wx-sun__status) { display: grid; gap: 4px; }
+.wx-sun__times > span:last-child { text-align: right; }
+.wx-sun__status { padding: 4px 12px; border: 1px solid var(--rule); border-radius: var(--radius-pill); color: var(--chalk-2); text-align: center; }
+@keyframes wx-arc { from { stroke-dashoffset: 1; } }
+@keyframes wx-orbit { from { transform: rotate(0deg); } }
+@keyframes wx-glow { 50% { opacity: 0.25; transform: scale(1.25); } }
+@keyframes wx-spin { to { transform: rotate(360deg); } }
+@keyframes wx-twinkle { 50% { opacity: 0.25; } }
+
+/* 空氣品質：六級色帶＋目前位置 */
+[data-aqi='0'] { --aqi: var(--aqi-1); }
+[data-aqi='1'] { --aqi: var(--aqi-2); }
+[data-aqi='2'] { --aqi: var(--aqi-3); }
+[data-aqi='3'] { --aqi: var(--aqi-4); }
+[data-aqi='4'] { --aqi: var(--aqi-5); }
+[data-aqi='5'] { --aqi: var(--aqi-6); }
+.wx-air__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2); }
+.wx-air__head .wx-figure { color: var(--aqi); }
+.wx-air__badge { display: inline-flex; align-items: center; gap: 6px; margin-left: var(--space-2); padding: 2px 10px; border: 1px solid var(--rule); border-radius: var(--radius-pill); }
+.wx-air__badge::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--aqi); }
+.wx-air__scale {
+  position: relative;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, var(--aqi-1) 0 16.667%, var(--aqi-2) 0 33.333%, var(--aqi-3) 0 50%, var(--aqi-4) 0 66.667%, var(--aqi-5) 0 83.333%, var(--aqi-6) 0);
+}
+.wx-air__marker {
+  position: absolute;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  border: 4px solid var(--night);
+  border-radius: 50%;
+  background: var(--chalk);
+  box-shadow: 0 0 0 2px var(--aqi);
+  translate: -50% -50%;
+  animation: wx-slide 1.2s var(--ease-out) both;
+}
+@keyframes wx-slide { from { left: 0; } }
+.wx-air__ticks { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); margin: calc(-1 * var(--space-2)) 0 0; padding: 0; color: var(--chalk-3); font-variant-numeric: tabular-nums; list-style: none; }
+.wx-air__pm { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); margin: 0; }
+.wx-air__pm > div { display: grid; gap: 2px; padding: var(--space-2) var(--space-3); border-radius: var(--radius-s); background: var(--night-2); }
+.wx-air__pm dd { margin: 0; font-variant-numeric: tabular-nums; }
+.wx-air__pm small { color: var(--chalk-3); font: 500 12px var(--font-sans); }
 
 @media (max-width: 859px) {
   .wx-select { font-size: 16px; } /* 小於 16px，iOS 聚焦時會放大頁面 */
-  .wx-tolerance { margin-left: 0; }
+  .wx-weights-open { margin-left: 0; }
   .wx-verdict__text { font-size: 56px; }
   .wx-verdict__score { font-size: 40px; }
   .wx-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -107,4 +194,11 @@
 @media (prefers-reduced-motion: reduce) {
   .wx-bar > span,
   .wx-report { transition: none; }
+  .wx-sun__done,
+  .wx-sun__sweep,
+  .wx-sun__orbit,
+  .wx-sun__halo,
+  .wx-sun__rays,
+  .wx-sun__stars circle,
+  .wx-air__marker { animation: none; }
 }
