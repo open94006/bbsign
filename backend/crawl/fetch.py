@@ -28,7 +28,7 @@ def get(url: str) -> httpx.Response:
     host = urlsplit(url).netloc
     if host not in _robots:
         rp = RobotFileParser()
-        r = _throttled(f"https://{host}/robots.txt")
+        r = _throttled(f"{urlsplit(url).scheme}://{host}/robots.txt")  # 跑者廣場只有 http
         # 404 或回傳 HTML 錯誤頁都視為沒有限制
         ok = r.status_code == 200 and "text/plain" in r.headers.get("content-type", "")
         rp.parse(r.text.splitlines() if ok else [])

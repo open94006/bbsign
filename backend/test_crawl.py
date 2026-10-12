@@ -10,7 +10,7 @@ from pathlib import Path
 from bs4 import BeautifulSoup
 
 import db
-from crawl import bijical, normalize, run
+from crawl import bijical, normalize, run, runnersquare
 
 FIXTURES = Path(__file__).parent / "crawl" / "fixtures"
 
@@ -75,6 +75,29 @@ def check_bijical_links() -> None:
     print("✓ 運動筆記行事曆的報名連結與去重")
 
 
+def check_runnersquare() -> None:
+    def row(href: str, day: str, status: str, cls: str = "") -> str:
+        return (f'<tr class="{cls}"><td></td><td><a href="{href}">賽事{day}</a></td><td></td><td>{day} 日 06:00</td>'
+                '<td>臺東縣臺東市</td><td><button title="費用：800<br/>限額：500">21K</button></td><td>協會</td>'
+                f'<td>{status}</td></tr>')
+    html = "<table>" + "".join([
+        row("https://bao-ming.com/eb/content/1#2", "10/18", "~10月18日"),
+        row("https://bao-ming.com/eb/content/1#3", "10/19", ""),  # 同網址、名稱不同
+        row("https://a.tw/x", "11/01", "已截止"),
+        row("https://b.tw/y", "10/11", "", "oldactivity"),
+        row("https://c.tw/z", "10/10", ""),  # 昨天但還沒標成過去
+        row("https://d.tw/w", "03/13", "7月27日~12月15日"),
+    ]) + "</table>"
+    got = list(runnersquare.parse(html, date(2026, 10, 12)))
+    assert [it["source_id"].split("|")[0] for it in got] == ["bao-ming.com/eb/content/1"] * 2 + ["d.tw/w"], got
+    assert got[0]["source_id"] != got[1]["source_id"], "同網址不同名稱是不同賽事"
+    assert "日期：2027-03-13" in got[2]["text"] and "21K 費用800 限額500" in got[0]["text"], got[0]["text"]
+    assert runnersquare.key("https://www.Bao-Ming.com/eb/content/7198/#reg") == "bao-ming.com/eb/content/7198"
+    assert runnersquare.same_race("2026 宜蘭冬山河超級馬拉松", ["2026宜蘭冬山河超級馬拉松"])
+    assert not runnersquare.same_race("2026 LAVA 大鵬灣暨115學年度鐵人三項甄試賽", ["2026 LAVAKIDS 大鵬灣小鐵人賽"])
+    print("✓ 跑者廣場：跳過已截止與過去賽事、推算年份、網址與名稱比對")
+
+
 # 檔名 -> (縣市, 比賽日, 運動, 一定要抽到的距離)；縣市 None 表示海外賽要被濾掉
 EXPECTED = {
     "ctrun": ("高雄市", date(2026, 11, 8), "路跑", 4),
@@ -100,6 +123,7 @@ def check_normalize_fixtures() -> None:
 if __name__ == "__main__":
     check_clean()
     check_bijical_links()
+    check_runnersquare()
     if os.getenv("DATABASE_URL"):
         check_locked_not_overwritten()
     if os.getenv("ANTHROPIC_API_KEY"):

@@ -14,9 +14,10 @@ import sys
 from datetime import date, datetime, timedelta, timezone
 
 import db
-from . import biji, bijical, ctrun, focusline, lohasnet, normalize, sportsnet
+from . import biji, bijical, ctrun, focusline, lohasnet, normalize, runnersquare, sportsnet
 
-SOURCES = {m.NAME: m for m in (ctrun, sportsnet, biji, lohasnet, focusline, bijical)}
+# runnersquare 要排最後：拿前面各站已寫入的報名網址去重
+SOURCES = {m.NAME: m for m in (ctrun, sportsnet, biji, lohasnet, focusline, bijical, runnersquare)}
 COLS = (
     "signup_url", "image_url", "content_hash", "is_race", "name", "sport", "race_date", "county", "venue",
     "distances_km", "fee_min", "fee_max", "souvenirs", "tags", "official_url", "social_url",
