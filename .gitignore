@@ -6,3 +6,4 @@ frontend/dist/
 backend/static/
 .DS_Store
 PLAYGROUND.md
+graphify-out/

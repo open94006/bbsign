@@ -1,0 +1,5 @@
+.claude/skills/
+.hallmark/
+backend/crawl/fixtures/
+frontend/public/*.png
+skills-lock.json
