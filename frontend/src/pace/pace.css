@@ -50,3 +50,30 @@
   .pace-training li { grid-template-columns: minmax(0, 1fr) auto; }
   .pace-training li .t-body { grid-column: 1 / -1; }
 }
+
+/* 「你輸入／計算／推估」標籤：分清楚哪些是使用者給的、哪些是模型算的 */
+.pace-tag {
+  display: inline-block;
+  margin-left: var(--space-1);
+  padding: 2px 8px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-pill);
+  color: var(--chalk-3);
+  font: 500 12px/1.4 var(--font-sans);
+  letter-spacing: 0;
+  text-transform: none;
+  vertical-align: middle;
+}
+.pace-tag--in { border-color: var(--sunrise); color: var(--sunrise); }
+.pace-msg { color: var(--urgent); }
+
+.pace-section { display: grid; gap: var(--space-4); }
+.pace-section h2 { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2) var(--space-3); }
+
+.pace-equiv { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); margin: 0; padding: 0; list-style: none; }
+.pace-equiv li { display: grid; gap: var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--rule); }
+.pace-equiv .t-label { color: var(--chalk-3); }
+
+@media (max-width: 859px) {
+  .pace-equiv { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

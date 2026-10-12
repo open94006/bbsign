@@ -217,7 +217,7 @@ export default function RaceRow({ e, today, open, onToggle }: Props) {
                   <dt className="t-label">算配速</dt>
                   <dd className="bb-pace-links">
                     {distances(e).map((d) => (
-                      <a key={d} className="bb-btn bb-btn--quiet" href={`/pace?d=${d}`}>
+                      <a key={d} className="bb-btn bb-btn--quiet" href={`/pace?d=${d}`} target="_blank">
                         {km(d)}K
                       </a>
                     ))}

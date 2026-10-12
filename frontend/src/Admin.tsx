@@ -344,9 +344,9 @@ function EventForm({ initial, onSave, onCancel }: { initial: Row; onSave: (b: ob
         </Select>
       </div>
       <Field label="地點" wide><Input name="venue" defaultValue={v('venue')} /></Field>
-      <Field label="距離（公里，用逗號分隔）" wide><Input name="distances_km" defaultValue={initial.distances_km.join(', ')} placeholder="5, 10, 21.0975" /></Field>
-      <Field label="最低報名費"><Input name="fee_min" type="number" min="0" inputMode="numeric" defaultValue={v('fee_min')} /></Field>
-      <Field label="最高報名費"><Input name="fee_max" type="number" min="0" inputMode="numeric" defaultValue={v('fee_max')} /></Field>
+      <Field label="距離（公里，用逗號分隔）" wide><Input name="distances_km" inputMode="decimal" defaultValue={initial.distances_km.join(', ')} placeholder="5, 10, 21.0975" onInput={(e) => (e.currentTarget.value = e.currentTarget.value.replace(/[^\d.,，、\s]/g, ''))} /></Field>
+      <Field label="最低報名費"><Input name="fee_min" type="number" min="0" step="1" inputMode="numeric" defaultValue={v('fee_min')} /></Field>
+      <Field label="最高報名費"><Input name="fee_max" type="number" min="0" step="1" inputMode="numeric" defaultValue={v('fee_max')} /></Field>
       <Field label="紀念品" wide><Input name="souvenirs" defaultValue={v('souvenirs')} /></Field>
       <fieldset className="flex flex-wrap gap-x-5 gap-y-2 rounded-md border p-3 md:col-span-3">
         <legend className="px-1">賽事性質</legend>
