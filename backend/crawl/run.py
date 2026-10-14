@@ -16,10 +16,10 @@ import sys
 from datetime import date, datetime, timedelta, timezone
 
 import db
-from . import biji, bijical, ctrun, cyclist, focusline, lohasnet, normalize, runnersquare, sportaiwan, sportsnet
+from . import biji, bijical, ctrun, cyclist, eventpal, focusline, lohasnet, normalize, runnersquare, sportaiwan, sportsnet
 
 # runnersquare 要排最後：拿前面各站已寫入的報名網址去重
-SOURCES = {m.NAME: m for m in (ctrun, sportsnet, biji, lohasnet, focusline, sportaiwan, cyclist, bijical, runnersquare)}
+SOURCES = {m.NAME: m for m in (ctrun, sportsnet, biji, lohasnet, focusline, sportaiwan, cyclist, eventpal, bijical, runnersquare)}
 # 同一場留誰：管理頁手動新增 > 報名平台 > 行事曆（照 SOURCES 順序），同來源留先收的
 RANK = ("manual", *SOURCES)
 COLS = (

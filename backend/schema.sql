@@ -1,6 +1,6 @@
 create table if not exists events (
   id serial primary key,
-  source text not null,                -- ctrun / sportsnet / biji / lohasnet / focusline / sportaiwan / cyclist / bijical / runnersquare / manual
+  source text not null,                -- ctrun / sportsnet / biji / lohasnet / focusline / sportaiwan / cyclist / eventpal / bijical / runnersquare / manual
   source_id text not null,
   signup_url text not null,
   image_url text,                      -- 報名網站的賽事主視覺（爬蟲直接帶回，不經過 AI）

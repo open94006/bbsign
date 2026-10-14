@@ -10,7 +10,7 @@ from pathlib import Path
 from bs4 import BeautifulSoup
 
 import db
-from crawl import bijical, cyclist, normalize, run, runnersquare, sportaiwan
+from crawl import bijical, cyclist, eventpal, normalize, run, runnersquare, sportaiwan
 
 FIXTURES = Path(__file__).parent / "crawl" / "fixtures"
 
@@ -161,6 +161,26 @@ def check_cyclist() -> None:
     print("✓ 自行車騎士協會：只收報名中、還沒比賽、非線上的活動，英文版不重複，找得到簡章 PDF")
 
 
+def check_eventpal() -> None:
+    def card(seq: str, name: str, day: str, label: str = "label") -> str:
+        return (f'<div class="actItem"><div class="{label}"></div><img class="image" src="/{seq}/SSS.jpg">'
+                f'<h3 class="title"><a href="ActivityIndex.action?activitytab.activityseqno={seq}" title="{name}">{name}</a></h3>'
+                f'<meta itemprop="startDate" content="{day}T00:00"><div class="signup"><div class="text">2027/01/14 (四)</div></div>'
+                '<div class="location"><div class="text">嘉義縣梅山鄉幸福廣場</div></div></div>')
+    html = "".join([
+        card("a-1", "【重要公告】活動咖針對近期疑似冒名詐騙訊息之說明", "2030-01-31"),
+        card("b-2", "2027梅山36彎自行車挑戰賽", "2027-02-21"),
+        card("c-3", "【線上騎】2025梅山36彎自行車挑戰賽", "2026-12-31"),
+        card("d-4", "2026某某路跑", "2026-11-01", "label finish"),  # 已結束
+        card("e-5", "2026石門水庫自行車挑戰賽", "2026-09-07"),  # 已經過了
+    ])
+    got = list(eventpal.parse(html, date(2026, 10, 14)))
+    assert [it["source_id"] for it in got] == ["b-2"], got
+    assert got[0]["image_url"] == "https://www.eventpal.com.tw/b-2/SSS.jpg"
+    assert got[0]["signup_url"].endswith("activityseqno=b-2") and "集合地點：嘉義縣梅山鄉幸福廣場" in got[0]["text"]
+    print("✓ 活動咖：略過公告、線上賽、已結束與已過的活動")
+
+
 # 檔名 -> (縣市, 比賽日, 運動, 一定要抽到的距離)；縣市 None 表示海外賽要被濾掉
 EXPECTED = {
     "ctrun": ("高雄市", date(2026, 11, 8), "路跑", 4),
@@ -170,6 +190,7 @@ EXPECTED = {
     "biji": (None, date(2027, 3, 6), "路跑", None),  # 不丹國際馬拉松
     "sportaiwan": ("新北市", date(2026, 12, 13), "路跑", 42.195),
     "cyclist": ("花蓮縣", date(2026, 10, 30), "自行車", 122),
+    "eventpal": ("嘉義縣", date(2027, 2, 21), "自行車", 72),
 }
 
 
@@ -192,6 +213,7 @@ if __name__ == "__main__":
     check_duplicates()
     check_sportaiwan()
     check_cyclist()
+    check_eventpal()
     if os.getenv("DATABASE_URL"):
         check_locked_not_overwritten()
     if os.getenv("ANTHROPIC_API_KEY"):
