@@ -69,7 +69,9 @@ def check_bijical_links() -> None:
     assert bijical.links(page(("線上報名", bao), ("活動簡章", bao)), info) == (bao, False)  # 其他平台：直接連過去
     assert bijical.links(page(("筆記報名", "https://irunner.biji.co/a/signup")), info)[1]  # 現有來源：略過
     assert bijical.links(page(("活動簡章", "https://signup.lohasnet.tw/x")), info)[1]  # 只有簡章在現有來源也算
-    assert bijical.links(page(("活動簡章", "https://example.tw/a.pdf")), info) == (info, False)  # 沒報名連結：連運動筆記
+    assert bijical.links(page(("活動簡章", " https://example.tw/a.pdf")), info) == ("https://example.tw/a.pdf", False)  # 沒報名連結：連簡章
+    assert bijical.links(page(("官方網站", "https://nb10k.tw/"), ("線上報名", bao)), info) == (bao, False)  # 報名優先於官網
+    assert bijical.links(page(("粉絲專頁", "https://facebook.com/x")), info) == (info, False)  # 沒報名、簡章、官網：連運動筆記
     assert bijical.links(BeautifulSoup("", "html.parser"), info) == (info, False)
     assert bijical.links(page(("線上報名", "https://ad.doubleclick.net/ddm/trackclk/N1;dc_trk_aid=1")), info) == (info, False)
     print("✓ 運動筆記行事曆的報名連結與去重")
@@ -93,9 +95,27 @@ def check_runnersquare() -> None:
     assert got[0]["source_id"] != got[1]["source_id"], "同網址不同名稱是不同賽事"
     assert "日期：2027-03-13" in got[2]["text"] and "21K 費用800 限額500" in got[0]["text"], got[0]["text"]
     assert runnersquare.key("https://www.Bao-Ming.com/eb/content/7198/#reg") == "bao-ming.com/eb/content/7198"
-    assert runnersquare.same_race("2026 宜蘭冬山河超級馬拉松", ["2026宜蘭冬山河超級馬拉松"])
-    assert not runnersquare.same_race("2026 LAVA 大鵬灣暨115學年度鐵人三項甄試賽", ["2026 LAVAKIDS 大鵬灣小鐵人賽"])
-    print("✓ 跑者廣場：跳過已截止與過去賽事、推算年份、網址與名稱比對")
+    print("✓ 跑者廣場：跳過已截止與過去賽事、推算年份、網址比對")
+
+
+def check_duplicates() -> None:
+    assert run.same_race("2026 宜蘭冬山河超級馬拉松", "2026宜蘭冬山河超級馬拉松")
+    assert not run.same_race("2026 LAVA 大鵬灣暨115學年度鐵人三項甄試賽", "2026 LAVAKIDS 大鵬灣小鐵人賽")
+    d1, d2 = date(2026, 10, 25), date(2027, 3, 13)
+    rows = [  # 2026-10 線上資料的真實案例
+        {"id": 1, "source": "bijical", "name": "2026 長榮航空馬拉松", "race_date": d1, "county": "臺北市", "sport": "路跑"},
+        {"id": 2, "source": "sportsnet", "name": "2026 長榮航空馬拉松", "race_date": d1, "county": "臺北市", "sport": "路跑"},
+        {"id": 3, "source": "manual", "name": "2026長榮航空馬拉松", "race_date": d1, "county": "臺北市", "sport": "路跑"},
+        {"id": 4, "source": "lohasnet", "name": "2027第二屆木棉花半程馬拉松", "race_date": d2, "county": "臺南市", "sport": "路跑"},
+        {"id": 5, "source": "bijical", "name": "2027花蓮太平洋浪花半程馬拉松", "race_date": d2, "county": "花蓮縣", "sport": "路跑"},
+        {"id": 6, "source": "focusline", "name": "2026台灣極限超級鐵人賽", "race_date": d2, "county": "臺南市", "sport": "三鐵"},
+        {"id": 7, "source": "bijical", "name": "2026台灣極限超級鐵人推廣路跑", "race_date": d2, "county": "臺南市", "sport": "路跑"},
+        {"id": 8, "source": "focusline", "name": "2026 濁水溪紫金馬拉松-花城竹山站", "race_date": d2, "county": "南投縣", "sport": "路跑"},
+        {"id": 9, "source": "focusline", "name": "2026 濁水溪紫金馬拉松-花城竹山站", "race_date": d2, "county": "南投縣", "sport": "路跑"},
+    ]
+    # 管理頁 > 報名平台 > 行事曆；同來源留先收的；不同縣市、不同運動的相近名稱不併
+    assert run.duplicates(rows) == {1: 3, 2: 3, 9: 8}, run.duplicates(rows)
+    print("✓ 去重：依來源優先序保留一筆，同日名稱相近但不同縣市或運動的不併")
 
 
 # 檔名 -> (縣市, 比賽日, 運動, 一定要抽到的距離)；縣市 None 表示海外賽要被濾掉
@@ -124,6 +144,7 @@ if __name__ == "__main__":
     check_clean()
     check_bijical_links()
     check_runnersquare()
+    check_duplicates()
     if os.getenv("DATABASE_URL"):
         check_locked_not_overwritten()
     if os.getenv("ANTHROPIC_API_KEY"):

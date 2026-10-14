@@ -1,7 +1,7 @@
 """運動筆記「找賽事」行事曆：running.biji.co 清單 + 每場內頁。
 
 行事曆收錄各家報名平台的賽事。報名連結指向現有來源的賽事會標成 covered，交給 run.py 略過並清掉舊資料；
-其他平台（伊貝特、JoinNow 等）直接連過去；還沒有報名連結的先連運動筆記的賽事頁。
+其他平台（伊貝特、JoinNow 等）直接連過去；還沒有報名連結的先連簡章或官網，都沒有才連運動筆記的賽事頁。
 """
 import re
 import sys
@@ -24,10 +24,12 @@ def links(page: BeautifulSoup, info_url: str) -> tuple[str, bool]:
     box = next((li for li in page.select(".stack-column-item")
                 if li.select_one(".data-title") and li.select_one(".data-title").get_text(strip=True) == "相關連結"), None)
     # ponytail: 廣告追蹤連結看不出目的地，又不能點（會灌廣告點擊數），直接忽略；遇過一場路協賽事因此重複
-    found = [(a.get_text(strip=True), a["href"]) for a in box.select("a[href]")
-             if not urlsplit(a["href"]).netloc.endswith("doubleclick.net")] if box else []
+    found = [(a.get_text(strip=True), a["href"].strip()) for a in box.select("a[href]")
+             if not urlsplit(a["href"].strip()).netloc.endswith("doubleclick.net")] if box else []
     covered = any(urlsplit(h).netloc.endswith(COVERED) for _, h in found)
-    signup = next((h for t, h in found if "報名" in t and h.startswith("http")), info_url)
+    # 報名頁 → 簡章或官網 → 運動筆記的賽事頁；網址前後偶爾有空白
+    web = [(t, h) for t, h in found if h.startswith("http")]
+    signup = next((h for words in (("報名",), ("簡章", "官")) for t, h in web if any(w in t for w in words)), info_url)
     return signup, covered
 
 

@@ -1,10 +1,9 @@
 """跑者廣場賽事行事曆：taipeimarathon.org.tw/contest.aspx 一頁列出所有賽事（只有 http）。
 
 主要補伊貝特（擋程式存取）和零星小平台。只收還沒截止報名的；報名連結指向現有爬蟲的網域、
-或資料庫裡別的來源已有同一場（報名網址相同，或同一天且名稱相近），標成 covered 交給 run.py 略過。
+或資料庫裡別的來源已有相同報名網址，標成 covered 交給 run.py 略過。網址不同的同一場由 run.py 的 dedupe 處理。
 沒有內頁可抓（伊貝特擋爬），AI 只拿清單列的名稱、日期、地點、組別、費用。
 """
-import difflib
 import re
 from datetime import date, timedelta
 from urllib.parse import urlsplit
@@ -57,8 +56,6 @@ def parse(html: str, today: date):
             # 同一場分兩天會列兩次（名稱相同）→ 併成一筆；同一報名網址的不同賽事（IRONMAN／IRONKIDS）→ 分開
             "source_id": key(a["href"]) + "|" + re.sub(r"\s+", "", name),
             "signup_url": a["href"].strip(),
-            "name": name,
-            "race_date": day,
             "text": "\n".join([
                 f"賽事名稱：{name}",
                 f"日期：{day.isoformat()} {tds[3].get_text(' ', strip=True)}",
@@ -70,33 +67,19 @@ def parse(html: str, today: date):
         }
 
 
-def _bare(name: str) -> str:
-    return re.sub(r"20\d\d|\d+\s*年|第.{1,3}屆|[\W_]", "", name).lower()
-
-
-def same_race(name: str, others: list[str]) -> bool:
-    """同一天的賽事裡有名稱相近的。各站常用不同網址收同一場（運動筆記頁、伊貝特不同 id）。"""
-    # ponytail: 0.6 是用 2026-10 實際資料調的：同場不同寫法多為 1.0，同天同場地的不同賽事到 0.56
-    return any(difflib.SequenceMatcher(None, _bare(name), _bare(o)).ratio() >= 0.6 for o in others)
-
-
-def known() -> tuple[set[str], dict[date, list[str]]]:
+def known() -> set[str]:
     try:
         with db.connect() as c:
-            rows = c.execute("select signup_url, race_date, name from events where source <> %s", (NAME,)).fetchall()
+            rows = c.execute("select signup_url from events where source <> %s", (NAME,)).fetchall()
     except Exception:  # --dry 沒有資料庫：不去重
         rows = []
-    by_day: dict[date, list[str]] = {}
-    for r in rows:
-        by_day.setdefault(r["race_date"], []).append(r["name"])
-    return {key(r["signup_url"]) for r in rows}, by_day
+    return {key(r["signup_url"]) for r in rows}
 
 
 def items(today: date):
-    urls, by_day = known()
+    urls = known()
     for it in parse(get(URL).text, today):
-        if (urlsplit(it["signup_url"]).netloc.endswith(COVERED) or key(it["signup_url"]) in urls
-                or same_race(it["name"], by_day.get(it["race_date"], []))):
+        if urlsplit(it["signup_url"]).netloc.endswith(COVERED) or key(it["signup_url"]) in urls:
             yield {"source_id": it["source_id"], "covered": True}
         else:
-            yield {k: it[k] for k in ("source_id", "signup_url", "text")}
+            yield it

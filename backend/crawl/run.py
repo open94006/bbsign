@@ -6,7 +6,9 @@
     python -m crawl.run --dry [來源…]   只抓不寫，原始資料以 JSON Lines 印到 stdout，並檢查每站至少抓到 1 筆
 
 不加 --new 是完整更新（每週排程）：已截止報名的賽事跳過，其餘內容有變才重抽。
+跑完再去重：同一場被多個來源收錄時只留優先序最高的一筆（dedupe）。
 """
+import difflib
 import hashlib
 import json
 import re
@@ -18,6 +20,8 @@ from . import biji, bijical, ctrun, focusline, lohasnet, normalize, runnersquare
 
 # runnersquare 要排最後：拿前面各站已寫入的報名網址去重
 SOURCES = {m.NAME: m for m in (ctrun, sportsnet, biji, lohasnet, focusline, bijical, runnersquare)}
+# 同一場留誰：管理頁手動新增 > 報名平台 > 行事曆（照 SOURCES 順序），同來源留先收的
+RANK = ("manual", *SOURCES)
 COLS = (
     "signup_url", "image_url", "content_hash", "is_race", "name", "sport", "race_date", "county", "venue",
     "distances_km", "fee_min", "fee_max", "souvenirs", "tags", "official_url", "social_url",
@@ -68,6 +72,44 @@ def upsert(c, source: str, it: dict, today: date | None = None, new_only: bool =
     return True
 
 
+def _bare(name: str) -> str:
+    return re.sub(r"20\d\d|\d+\s*年|第.{1,3}屆|[\W_]", "", name).lower()
+
+
+def same_race(a: str, b: str) -> bool:
+    # ponytail: 0.6 是用 2026-10 實際資料調的：同場不同寫法多為 1.0，同天同場地的不同賽事到 0.56
+    return difflib.SequenceMatcher(None, _bare(a), _bare(b)).ratio() >= 0.6
+
+
+def duplicates(rows: list[dict]) -> dict[int, int]:
+    """回傳 {重複那筆 id: 保留那筆 id}。同一天、同縣市、同運動、名稱相近算同一場。
+
+    不比報名網址：路協、樂活很多場共用同一個報名頁。要同縣市、同運動，是因為同一天的
+    「木棉花半馬」（臺南）和「太平洋浪花半馬」（花蓮）、「極限超級鐵人賽」和它的「推廣路跑」名稱也相近。
+    """
+    kept: dict[tuple, list[dict]] = {}
+    dup = {}
+    for r in sorted(rows, key=lambda r: (RANK.index(r["source"]) if r["source"] in RANK else len(RANK), r["id"])):
+        group = kept.setdefault((r["race_date"], r["county"], r["sport"]), [])
+        same = next((k for k in group if same_race(r["name"], k["name"])), None)
+        if same:
+            dup[r["id"]] = same["id"]
+        else:
+            group.append(r)
+    return dup
+
+
+def dedupe(c, today: date) -> int:
+    rows = c.execute("select id, source, name, race_date, county, sport from events"
+                     " where is_race and not hidden and race_date >= %s", (today,)).fetchall()
+    dup = duplicates(rows)
+    with c.transaction():  # 整批重算，前台不會看到清到一半的狀態
+        c.execute("update events set dup_of = null where dup_of is not null")
+        for i, keep in dup.items():
+            c.execute("update events set dup_of = %s where id = %s", (keep, i))
+    return len(dup)
+
+
 def crawl(names: list[str], today: date, new_only: bool = False) -> None:
     db.init()
     with db.connect() as c:
@@ -88,6 +130,8 @@ def crawl(names: list[str], today: date, new_only: bool = False) -> None:
                 print(f"[{name}] 清單抓取失敗：{e!r}", file=sys.stderr)
             print(f"[{name}] 更新 {changed} 筆，失敗 {failed} 筆", file=sys.stderr)
             db.clear_cache()  # 每站跑完就清，前台不用等全部來源跑完（第一次爬可能要很久）
+        print(f"[dedupe] {dedupe(c, today)} 筆是其他來源已有的同一場，前台不顯示", file=sys.stderr)
+        db.clear_cache()
 
 
 if __name__ == "__main__":

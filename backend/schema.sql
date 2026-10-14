@@ -31,3 +31,5 @@ alter table events add column if not exists image_url text;
 -- 路線圖：[{"label": "全馬", "url": "<Ride with GPS／Garmin 嵌入網址>"}]，資料在 routes.sql。
 -- 爬蟲的 upsert 和管理頁存檔都只寫自己的欄位，不會覆蓋這欄
 alter table events add column if not exists routes jsonb;
+-- 同一場賽事被多個來源收錄時，指向保留的那筆；前台不顯示。爬蟲每次跑完重算（crawl/run.py dedupe）
+alter table events add column if not exists dup_of int;

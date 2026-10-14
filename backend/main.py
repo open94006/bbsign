@@ -55,7 +55,7 @@ PUBLIC = """
 select id, name, sport, race_date, county, venue, distances_km, fee_min, fee_max, souvenirs,
        tags, signup_url, image_url, official_url, social_url, signup_open, signup_close, source, routes
 from events
-where is_race and not hidden and county is not null
+where is_race and not hidden and dup_of is null and county is not null
   and race_date >= (now() at time zone 'Asia/Taipei')::date
 order by race_date, id
 """
