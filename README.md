@@ -114,7 +114,7 @@ PROJECT=你的專案ID DATABASE_URL='postgresql://…-pooler…' REDIS_URL='redi
 1. 在 Cloud Run 主控台替服務 `bbsign` 設定 `ADMIN_TOKEN`，以及從 Secret Manager 帶入的 `DATABASE_URL`、`REDIS_URL`。爬蟲 Job 用的機密名稱寫在 `cloudbuild.yaml`（`BBSIGN_DATABASE_URL`、`UPSTASH_REDIS_URL`、`BBSIGN_ANTHROPIC_API_KEY`）。天氣金鑰由 `cloudbuild.yaml` 帶入服務，Secret Manager 裡要有 `CWA_API_KEY`、`MOENV_API_KEY`（中央氣象署、環境部開放資料平台免費申請）。
 2. Cloud Build 觸發條件的設定檔要選 `cloudbuild.yaml`。從 Cloud Run 主控台「持續部署」建立的觸發條件預設是內嵌設定，只會換映像檔，要改成這個檔案：
    `gcloud builds triggers update github <觸發條件名稱> --build-config=cloudbuild.yaml`
-3. 服務、Job 與建置都用 Compute 預設服務帳戶，它需要 `Cloud Run 管理員`、`服務帳戶使用者`、`Artifact Registry 寫入者`、`Secret Manager 存取者`。
+3. 建置與排程用 Compute 預設服務帳戶，它需要 `Cloud Run 管理員`、`服務帳戶使用者`、`Artifact Registry 寫入者`。網站服務與爬蟲 Job 用專用帳戶 `bbsign@`，只授權讀取它們用到的機密，以及對 `bbsign-crawl` 的 `roles/run.jobsExecutorWithOverrides`（管理頁查狀態、帶參數啟動爬蟲）。網站程式碼不要用有 `roles/editor` 的帳戶執行：網站一旦被攻破，整個 GCP 專案都會跟著被控制。
 4. 映像檔放在 Artifact Registry 的 `cloud-run-source-deploy`，沒有的話先建立：
 
 ```bash

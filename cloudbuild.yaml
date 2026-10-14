@@ -1,11 +1,11 @@
-# push 到 main → Cloud Build 觸發：建置映像檔 → 部署網站服務與爬蟲 Job（共用同一個映像檔）
-# 爬蟲：每 3 天抓新賽事、每週一完整更新，管理頁也能手動啟動。觸發條件要指定這個檔案（見 README）。
+# push 到 main 時執行：建置映像檔，部署網站服務與爬蟲 Job（共用同一個映像檔），再更新爬蟲排程。
+# Cloud Build 觸發條件要指定這個檔案（見 README）。
 substitutions:
   _REGION: asia-east1
   _IMAGE: ${_REGION}-docker.pkg.dev/${PROJECT_ID}/cloud-run-source-deploy/bbsign:${COMMIT_SHA}
 options:
   dynamicSubstitutions: true
-  substitutionOption: ALLOW_LOOSE  # 觸發條件上 Cloud Run 主控台留下的 _AR_HOSTNAME 等變數用不到，不報錯
+  substitutionOption: ALLOW_LOOSE  # 忽略觸發條件上用不到的變數（例如 _AR_HOSTNAME）
   logging: CLOUD_LOGGING_ONLY
 
 steps:
@@ -18,27 +18,32 @@ steps:
     args:
       - -euc
       - |
-        # 服務的機密與 ADMIN_TOKEN 在 Cloud Run 主控台設定，這裡只換映像檔、補上 CRAWL_JOB 與天氣金鑰，其餘設定沿用
-        # （--update-* 只新增或覆蓋列出的項目，不會清掉主控台設定的其他機密）
-        gcloud run deploy bbsign --image $_IMAGE --region $_REGION \
+        # 網站與爬蟲用專用帳戶執行，只能讀自己的機密、啟動爬蟲。
+        # 不要換回 Compute 預設帳戶：它有 roles/editor，網站被攻破時整個專案都會跟著被控制。
+        RUN_SA=bbsign@$PROJECT_ID.iam.gserviceaccount.com
+
+        # 網站：DATABASE_URL、REDIS_URL、ADMIN_TOKEN 在主控台設定，這裡不動（--update-* 只改列出的項目）
+        gcloud run deploy bbsign --image $_IMAGE --region $_REGION --service-account $$RUN_SA \
           --update-env-vars CRAWL_JOB=projects/$PROJECT_ID/locations/$_REGION/jobs/bbsign-crawl \
           --update-secrets CWA_API_KEY=CWA_API_KEY:latest,MOENV_API_KEY=MOENV_API_KEY:latest
-        # ponytail: 服務與 Job 都用 Compute 預設服務帳戶（已有 run.admin、secretAccessor），要隔離權限再拆
-        gcloud run jobs deploy bbsign-crawl --image $_IMAGE --region $_REGION \
+
+        # 爬蟲
+        gcloud run jobs deploy bbsign-crawl --image $_IMAGE --region $_REGION --service-account $$RUN_SA \
           --command python --args=-m,crawl.run --task-timeout 30m --max-retries 0 \
           --set-secrets DATABASE_URL=BBSIGN_DATABASE_URL:latest,REDIS_URL=UPSTASH_REDIS_URL:latest,ANTHROPIC_API_KEY=BBSIGN_ANTHROPIC_API_KEY:latest
-        # 排程：已存在就更新，不存在就建立（管理頁也能手動啟動）
+
+        # 排程：已存在就更新，否則建立。排程帳戶只用來呼叫 Jobs API，不執行程式碼。
         JOB_URI=https://run.googleapis.com/v2/projects/$PROJECT_ID/locations/$_REGION/jobs/bbsign-crawl:run
-        SA=$PROJECT_NUMBER-compute@developer.gserviceaccount.com  # Job 與排程共用 Compute 預設服務帳戶
+        SCHED_SA=$PROJECT_NUMBER-compute@developer.gserviceaccount.com
         schedule() {
           name=$$1; shift
           op=create
           gcloud scheduler jobs describe $$name --location $_REGION >/dev/null 2>&1 && op=update
           gcloud scheduler jobs $$op http $$name --location $_REGION --time-zone Asia/Taipei \
-            --http-method POST --uri $$JOB_URI --oauth-service-account-email $$SA "$$@"
+            --http-method POST --uri $$JOB_URI --oauth-service-account-email $$SCHED_SA "$$@"
         }
-        # 每 3 天凌晨 3 點：只抓資料庫還沒有的新賽事（每月 1、4、7…日，月底到月初可能只隔 1–2 天）
+        # 每 3 天凌晨 3 點：只抓新賽事
         schedule bbsign-crawl-new --schedule "0 3 */3 * *" \
           --message-body '{"overrides":{"containerOverrides":[{"args":["-m","crawl.run","--new"]}]}}'
-        # 每週一凌晨 4 點：完整更新所有未截止的賽事（內容有變才重抽）
+        # 每週一凌晨 4 點：完整更新未截止的賽事
         schedule bbsign-crawl-weekly --schedule "0 4 * * 1"
