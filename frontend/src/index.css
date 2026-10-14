@@ -76,10 +76,8 @@ body {
 .menu-group { display: grid; gap: var(--space-2); }
 .menu-group .t-caption { color: var(--chalk-3); }
 
-/* 賽事詳細卡：路跑的「算配速」連結，一個距離一個 */
-.bb-pace-links { display: flex; flex-wrap: wrap; gap: 0 var(--space-4); }
-.bb-pace-links .bb-btn--quiet,
-.bb-facts dd > .bb-btn--quiet { min-height: 0; font: inherit; }
+/* 賽事詳細卡：路跑的距離徽章連到配速計算，外觀不變 */
+a.bb-dist { text-decoration: none; }
 
 /* 路線圖彈窗：嵌入頁要好幾秒才畫出地圖，iframe 透明、底下先墊一行載入中；手機全螢幕 */
 .bb-routes { width: min(960px, calc(100vw - 32px)); }

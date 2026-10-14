@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import Filters from './Filters'
 import RaceDrawer from './RaceDrawer'
 import SiteNav from './SiteNav'
-import { RaceHead } from './RaceRow'
+import RaceRow, { RaceDialog } from './RaceRow'
 import TaiwanMap from './TaiwanMap'
 import { matches, readFilters, seasonOf, signupStatus, todayInTaiwan, writeFilters, type Filters as F, type RaceEvent } from './data'
 
@@ -39,12 +39,10 @@ export default function App() {
 
   const selectCounty = (county: string | null) => {
     update({ ...filters, county })
-    setOpenId(null)
     setDrawer(true)
   }
   const closeDrawer = useCallback(() => {
     setDrawer(false)
-    setOpenId(null)
     setFilters((f) => {
       const next = { ...f, county: null }
       history.replaceState(null, '', writeFilters(next))
@@ -93,6 +91,8 @@ export default function App() {
     .sort((a, b) => b.race_date.localeCompare(a.race_date) || b.id - a.id)
   // 沒有截止日的不列：多半是報名時間未定，不能說它可報名
   const open = pool.filter((e) => e.signup_close && signupStatus(e, today) === '報名中').slice(0, 3)
+  const detail = openId === null ? undefined : events?.find((e) => e.id === openId)
+  const closeDetail = useCallback(() => setOpenId(null), [])
   const season = filters.month.length === 1 ? seasonOf(Number(filters.month[0])) : undefined
 
   return (
@@ -129,17 +129,7 @@ export default function App() {
             <h2 className="t-label">最近可報名的比賽</h2>
             <ul>
               {open.map((e) => (
-                <li key={e.id} className="bb-race" data-sport={e.sport ?? undefined}>
-                  <RaceHead
-                    e={e}
-                    today={today}
-                    onClick={() => {
-                      update({ ...filters, county: e.county })
-                      setDrawer(true)
-                      setOpenId(e.id)
-                    }}
-                  />
-                </li>
+                <RaceRow key={e.id} e={e} today={today} onOpen={() => setOpenId(e.id)} />
               ))}
             </ul>
           </div>
@@ -172,11 +162,11 @@ export default function App() {
         summary={`${shown.length} 場賽事　${summarize(filters)}`}
         events={shown}
         today={today}
-        openId={openId}
-        onToggle={(id) => setOpenId((cur) => (cur === id ? null : id))}
+        onOpen={setOpenId}
         onClose={closeDrawer}
         onClear={() => update({ ...EMPTY, county: filters.county })}
       />
+      {detail && <RaceDialog key={detail.id} e={detail} today={today} onClose={closeDetail} />}
     </div>
   )
 }

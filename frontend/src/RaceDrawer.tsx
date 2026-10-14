@@ -8,14 +8,13 @@ type Props = {
   summary: string
   events: RaceEvent[]
   today: string
-  openId: number | null
-  onToggle: (id: number) => void
+  onOpen: (id: number) => void
   onClose: () => void
   onClear: () => void
 }
 
 // 設計規範 RaceDrawer：右側滑出的賽事選單，首頁唯一會捲動的區域
-export default function RaceDrawer({ open, title, summary, events, today, openId, onToggle, onClose, onClear }: Props) {
+export default function RaceDrawer({ open, title, summary, events, today, onOpen, onClose, onClear }: Props) {
   const closeRef = useRef<HTMLButtonElement>(null)
   const listRef = useRef<HTMLUListElement>(null)
 
@@ -27,12 +26,10 @@ export default function RaceDrawer({ open, title, summary, events, today, openId
     return () => removeEventListener('keydown', onKey)
   }, [open, onClose])
 
-  // 換縣市時回到清單頂端；指定展開的賽事時捲到那一列
+  // 換縣市時回到清單頂端
   useEffect(() => {
-    const target = openId === null ? null : document.getElementById(`race-${openId}`)
-    if (target) target.scrollIntoView({ block: 'nearest' })
-    else listRef.current?.scrollTo({ top: 0 })
-  }, [title, openId])
+    listRef.current?.scrollTo({ top: 0 })
+  }, [title])
 
   return (
     <aside className="bb-drawer" data-open={open} inert={!open} aria-labelledby="drawer-title">
@@ -57,7 +54,7 @@ export default function RaceDrawer({ open, title, summary, events, today, openId
       ) : (
         <ul ref={listRef} className="bb-drawer__list">
           {events.map((e) => (
-            <RaceRow key={e.id} e={e} today={today} open={openId === e.id} onToggle={() => onToggle(e.id)} />
+            <RaceRow key={e.id} e={e} today={today} onOpen={() => onOpen(e.id)} />
           ))}
         </ul>
       )}

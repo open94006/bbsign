@@ -525,8 +525,7 @@
     cursor: pointer;
     transition: background-color var(--dur-short) var(--ease-out);
 }
-.bb-race__head:hover,
-.bb-race[data-open='true'] .bb-race__head {
+.bb-race__head:hover {
     background: var(--night-3);
 }
 .bb-race__head:focus-visible {
@@ -721,26 +720,88 @@
     text-align: center;
 }
 
-.bb-race__body {
+/* ---------- 賽事詳細彈窗 ---------- */
+
+/* 標題列、底部按鈕固定，中間捲動；寬螢幕左欄主視覺與倒數、右欄資訊 */
+.bb-event {
+    width: min(880px, calc(100vw - 32px));
+    overscroll-behavior: contain;
+}
+.bb-event[open] {
+    display: flex;
+    flex-direction: column;
+}
+.bb-event__head {
     display: grid;
-    grid-template-rows: 0fr;
-    transition: grid-template-rows var(--dur-long) var(--ease-in-out);
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: start;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-5);
+    border-bottom: 1px solid var(--rule);
 }
-.bb-race[data-open='true'] .bb-race__body {
-    grid-template-rows: 1fr;
+.bb-event__title {
+    display: grid;
+    gap: var(--space-2);
+    min-width: 0;
 }
-.bb-race__body > div {
+.bb-event__title h2 {
+    margin: 0;
+}
+.bb-event__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    align-items: start;
+    gap: var(--space-5);
     min-height: 0;
-    overflow: hidden;
+    padding: var(--space-5);
+    overflow-y: auto;
 }
-
-/* ---------- 賽事詳細卡（展開後） ---------- */
-
-.bb-detail {
+.bb-event__side,
+.bb-event__info {
     display: grid;
     gap: var(--space-4);
-    padding: var(--space-2) var(--space-5) var(--space-5);
-    background: var(--night-3);
+}
+.bb-event__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-4);
+    padding: var(--space-3) var(--space-5);
+    border-top: 1px solid var(--rule);
+}
+@media (max-width: 719px) {
+    .bb-event__grid {
+        grid-template-columns: minmax(0, 1fr);
+        padding: var(--space-4);
+    }
+}
+@media (max-width: 599px) {
+    .bb-event {
+        width: 100vw;
+        max-width: none;
+        height: 100dvh;
+        max-height: none;
+        margin: 0;
+        border: 0;
+        border-radius: 0;
+    }
+    .bb-event__head {
+        gap: var(--space-3);
+        padding: var(--space-3) var(--space-4);
+    }
+    .bb-event__grid {
+        flex: 1;
+    }
+    .bb-event__foot {
+        padding: var(--space-3) var(--space-4) max(var(--space-3), env(safe-area-inset-bottom));
+    }
+    .bb-event__foot .bb-actions {
+        width: 100%;
+    }
+    .bb-event__foot .bb-btn--primary {
+        flex: 1;
+    }
 }
 
 .bb-facts {
@@ -933,7 +994,6 @@
     .bb-chip,
     .bb-race__head,
     .bb-race__date,
-    .bb-race__body,
     .bb-county,
     .bb-visual__hint {
         transition-duration: 1ms;

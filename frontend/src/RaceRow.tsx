@@ -22,17 +22,24 @@ const CheckIcon = () => (
   </svg>
 )
 
-// 設計規範：距離徽章，最長的實心、其餘同色系淡底
-export function Distances({ e }: { e: RaceEvent }) {
+// 設計規範：距離徽章，最長的實心、其餘同色系淡底；pace 時路跑的每個距離連到配速計算
+export function Distances({ e, pace }: { e: RaceEvent; pace?: boolean }) {
   const list = distances(e)
   if (!list.length) return null
+  const link = pace && e.sport === '路跑'
   return (
     <span className="bb-dists">
-      {list.map((d) => (
-        <span key={d} className="bb-dist">
-          {km(d)}K
-        </span>
-      ))}
+      {list.map((d) =>
+        link ? (
+          <a key={d} className="bb-dist" href={`/pace?d=${d}`} target="_blank" title={`算 ${km(d)}K 配速`}>
+            {km(d)}K
+          </a>
+        ) : (
+          <span key={d} className="bb-dist">
+            {km(d)}K
+          </span>
+        ),
+      )}
     </span>
   )
 }
@@ -48,11 +55,11 @@ function SignupStatus({ e, today }: { e: RaceEvent; today: string }) {
   return <span className="bb-status">報名中・{md(e.signup_close)} 截止</span>
 }
 
-export function RaceHead({ e, today, open, onClick }: { e: RaceEvent; today: string; open?: boolean; onClick: () => void }) {
+export function RaceHead({ e, today, onClick }: { e: RaceEvent; today: string; onClick: () => void }) {
   const { mm, dd, dow } = dateParts(e.race_date)
   const from = feeFrom(e)
   return (
-    <button type="button" className="bb-race__head" aria-expanded={open} onClick={onClick}>
+    <button type="button" className="bb-race__head" aria-haspopup="dialog" onClick={onClick}>
       <span className="bb-race__date">
         <span className="t-date-l">
           {mm}
@@ -99,7 +106,7 @@ function Lightbox({ src, alt, onClose }: { src: string; alt: string; onClose: ()
       onClick={close}
       onWheel={close}
       onKeyDown={(k) => {
-        k.stopPropagation() // 不讓 Esc 連右側選單一起收起來
+        k.stopPropagation() // 不讓 Esc 連詳細彈窗一起關掉
         if (['ArrowLeft', 'ArrowRight', 'Escape'].includes(k.key)) {
           k.preventDefault()
           close()
@@ -157,7 +164,7 @@ function Routes({ e }: { e: RaceEvent }) {
   const close = () => ref.current?.close()
   return (
     <>
-      <button type="button" className="bb-btn bb-btn--quiet" aria-haspopup="dialog" onClick={open}>
+      <button type="button" className="bb-btn" aria-haspopup="dialog" onClick={open}>
         路線圖
       </button>
       {/* 點背景（dialog 本身）關閉；Esc 由瀏覽器處理，不往外傳以免右側選單一起收起來 */}
@@ -230,13 +237,30 @@ function Venue({ e }: { e: RaceEvent }) {
   )
 }
 
-type Props = { e: RaceEvent; today: string; open: boolean; onToggle: () => void }
+// 設計規範 RaceRow：左日期、右名稱與一行重點，點一下開詳細彈窗
+export default function RaceRow({ e, today, onOpen }: { e: RaceEvent; today: string; onOpen: () => void }) {
+  return (
+    <li className="bb-race" data-sport={e.sport ?? undefined} data-closed={signupStatus(e, today) === '已截止' || undefined}>
+      <RaceHead e={e} today={today} onClick={onOpen} />
+    </li>
+  )
+}
 
-// 設計規範 RaceRow：左日期、右名稱與一行重點，點一下在原地展開成詳細卡
-export default function RaceRow({ e, today, open, onToggle }: Props) {
-  // 展開過才載入主視覺，收合時保留，避免收合動畫跳動
-  const [seen, setSeen] = useState(open)
-  if (open && !seen) setSeen(true)
+// 賽事詳細彈窗：所有清單（右側選單、最近可報名）共用。寬螢幕左圖右資訊兩欄、報名按鈕固定在底部；手機全螢幕
+export function RaceDialog({ e, today, onClose }: { e: RaceEvent; today: string; onClose: () => void }) {
+  const ref = useRef<HTMLDialogElement>(null)
+  useEffect(() => {
+    const d = ref.current
+    if (!d) return
+    if (!d.open) d.showModal()
+    d.addEventListener('close', onClose)
+    return () => d.removeEventListener('close', onClose)
+  }, [onClose])
+  const close = () => {
+    ref.current?.close()
+    onClose()
+  }
+  const { mm, dd, dow } = dateParts(e.race_date)
   const price = feeRange(e)
   const signup = safeUrl(e.signup_url)
   const official = safeUrl(e.official_url)
@@ -244,98 +268,105 @@ export default function RaceRow({ e, today, open, onToggle }: Props) {
   const period = e.signup_open || e.signup_close ? `${e.signup_open ?? ''}～${e.signup_close ?? ''}`.replaceAll('-', '/') : null
 
   return (
-    <li
-      className="bb-race"
+    // 點背景關閉；Esc 由瀏覽器處理，不往外傳以免右側選單一起收起來
+    <dialog
+      ref={ref}
+      className="bb-dialog bb-event"
       data-sport={e.sport ?? undefined}
-      data-open={open}
-      data-closed={signupStatus(e, today) === '已截止' || undefined}
-      id={`race-${e.id}`}
+      aria-labelledby="event-title"
+      onClick={(k) => k.target === k.currentTarget && close()}
+      onKeyDown={(k) => k.stopPropagation()}
     >
-      <RaceHead e={e} today={today} open={open} onClick={onToggle} />
-      <div className="bb-race__body" inert={!open}>
-        <div>
-          <div className="bb-detail">
-            {seen && <EventVisual e={e} />}
-            {seen && <CountdownPanel e={e} today={today} />}
-            {e.venue && <Venue e={e} />}
-            <dl className="bb-facts t-body">
-              {e.distances_km.length > 0 && (
-                <div>
-                  <dt className="t-label">距離</dt>
-                  <dd>
-                    <Distances e={e} />
-                  </dd>
-                </div>
-              )}
-              {e.routes?.length ? (
-                <div>
-                  <dt className="t-label">路線</dt>
-                  <dd>
-                    <Routes e={e} />
-                  </dd>
-                </div>
-              ) : null}
-              {e.sport === '路跑' && e.distances_km.length > 0 && (
-                <div>
-                  <dt className="t-label">算配速</dt>
-                  <dd className="bb-pace-links">
-                    {distances(e).map((d) => (
-                      <a key={d} className="bb-btn bb-btn--quiet" href={`/pace?d=${d}`} target="_blank">
-                        {km(d)}K
-                      </a>
-                    ))}
-                  </dd>
-                </div>
-              )}
-              {seen && <RaceWeather e={e} today={today} />}
-              {price && (
-                <div>
-                  <dt className="t-label">報名費</dt>
-                  <dd>{price}</dd>
-                </div>
-              )}
-              {e.souvenirs && (
-                <div>
-                  <dt className="t-label">紀念品</dt>
-                  <dd>{e.souvenirs}</dd>
-                </div>
-              )}
-              {period && (
-                <div>
-                  <dt className="t-label">報名期間</dt>
-                  <dd>{period}</dd>
-                </div>
-              )}
-            </dl>
-            {e.tags.length > 0 && (
-              <ul className="bb-tags t-label" aria-label="賽事性質">
-                {e.tags.map((t) => (
-                  <li key={t}>{t}</li>
-                ))}
-              </ul>
+      <header className="bb-event__head">
+        <span className="bb-race__date">
+          <span className="t-date-l">
+            {mm}
+            <i>/</i>
+            {dd}
+          </span>
+          <span className="t-caption">{dow}</span>
+        </span>
+        <div className="bb-event__title">
+          <h2 id="event-title" className="t-title-l">
+            {e.name}
+          </h2>
+          <span className="bb-race__meta t-label">
+            {e.sport && <span className="bb-sport">{e.sport}</span>}
+            <span>{e.county}</span>
+            <SignupStatus e={e} today={today} />
+          </span>
+        </div>
+        <button type="button" className="bb-icon-btn bb-icon-btn--s bb-icon-btn--close" aria-label="關閉" onClick={close}>
+          ×
+        </button>
+      </header>
+      <div className="bb-event__grid">
+        <div className="bb-event__side">
+          <EventVisual e={e} />
+          <CountdownPanel e={e} today={today} />
+          {e.tags.length > 0 && (
+            <ul className="bb-tags t-label" aria-label="賽事性質">
+              {e.tags.map((t) => (
+                <li key={t}>{t}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div className="bb-event__info">
+          {e.venue && <Venue e={e} />}
+          <dl className="bb-facts t-body">
+            {e.distances_km.length > 0 && (
+              <div>
+                <dt className="t-label">距離</dt>
+                <dd>
+                  <Distances e={e} pace />
+                </dd>
+              </div>
             )}
-            <div className="bb-actions">
-              {signup && (
-                <a className="bb-btn bb-btn--primary" href={signup} target="_blank" rel="noopener noreferrer">
-                  {/* 運動筆記行事曆上還沒有報名連結的賽事，連的是資訊頁不是報名頁 */}
-                  {signup.startsWith('https://running.biji.co/') ? '查看賽事資訊' : '前往報名'}
-                </a>
-              )}
-              {official && (
-                <a className="bb-btn" href={official} target="_blank" rel="noopener noreferrer">
-                  官方網站
-                </a>
-              )}
-              {social && (
-                <a className="bb-btn" href={social} target="_blank" rel="noopener noreferrer">
-                  粉絲專頁
-                </a>
-              )}
-            </div>
-            <p className="bb-source t-caption">資料來源：{SOURCES[e.source] ?? e.source}</p>
-          </div>
+            {period && (
+              <div>
+                <dt className="t-label">報名期間</dt>
+                <dd>{period}</dd>
+              </div>
+            )}
+            {price && (
+              <div>
+                <dt className="t-label">報名費</dt>
+                <dd>{price}</dd>
+              </div>
+            )}
+            {e.souvenirs && (
+              <div>
+                <dt className="t-label">紀念品</dt>
+                <dd>{e.souvenirs}</dd>
+              </div>
+            )}
+            <RaceWeather e={e} today={today} />
+          </dl>
         </div>
       </div>
-    </li>
+      <footer className="bb-event__foot">
+        <div className="bb-actions">
+          {signup && (
+            <a className="bb-btn bb-btn--primary" href={signup} target="_blank" rel="noopener noreferrer">
+              {/* 運動筆記行事曆上還沒有報名連結的賽事，連的是資訊頁不是報名頁 */}
+              {signup.startsWith('https://running.biji.co/') ? '查看賽事資訊' : '前往報名'}
+            </a>
+          )}
+          {official && (
+            <a className="bb-btn" href={official} target="_blank" rel="noopener noreferrer">
+              官方網站
+            </a>
+          )}
+          {social && (
+            <a className="bb-btn" href={social} target="_blank" rel="noopener noreferrer">
+              粉絲專頁
+            </a>
+          )}
+          <Routes e={e} />
+        </div>
+        <p className="bb-source t-caption">資料來源：{SOURCES[e.source] ?? e.source}</p>
+      </footer>
+    </dialog>
   )
 }
