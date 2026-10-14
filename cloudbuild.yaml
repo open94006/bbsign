@@ -1,11 +1,9 @@
-# push 到 main 時執行：建置映像檔，部署網站服務與爬蟲 Job（共用同一個映像檔），再更新爬蟲排程。
-# Cloud Build 觸發條件要指定這個檔案（見 README）。
 substitutions:
   _REGION: asia-east1
   _IMAGE: ${_REGION}-docker.pkg.dev/${PROJECT_ID}/cloud-run-source-deploy/bbsign:${COMMIT_SHA}
 options:
   dynamicSubstitutions: true
-  substitutionOption: ALLOW_LOOSE  # 忽略觸發條件上用不到的變數（例如 _AR_HOSTNAME）
+  substitutionOption: ALLOW_LOOSE
   logging: CLOUD_LOGGING_ONLY
 
 steps:
@@ -18,21 +16,17 @@ steps:
     args:
       - -euc
       - |
-        # 網站與爬蟲用專用帳戶執行，只能讀自己的機密、啟動爬蟲。
-        # 不要換回 Compute 預設帳戶：它有 roles/editor，網站被攻破時整個專案都會跟著被控制。
+        # 不要換回 Compute 預設帳戶（有 roles/editor）
         RUN_SA=bbsign@$PROJECT_ID.iam.gserviceaccount.com
 
-        # 網站：DATABASE_URL、REDIS_URL、ADMIN_TOKEN 在主控台設定，這裡不動（--update-* 只改列出的項目）
         gcloud run deploy bbsign --image $_IMAGE --region $_REGION --service-account $$RUN_SA \
           --update-env-vars CRAWL_JOB=projects/$PROJECT_ID/locations/$_REGION/jobs/bbsign-crawl \
           --update-secrets CWA_API_KEY=CWA_API_KEY:latest,MOENV_API_KEY=MOENV_API_KEY:latest
 
-        # 爬蟲
         gcloud run jobs deploy bbsign-crawl --image $_IMAGE --region $_REGION --service-account $$RUN_SA \
           --command python --args=-m,crawl.run --task-timeout 30m --max-retries 0 \
           --set-secrets DATABASE_URL=BBSIGN_DATABASE_URL:latest,REDIS_URL=UPSTASH_REDIS_URL:latest,ANTHROPIC_API_KEY=BBSIGN_ANTHROPIC_API_KEY:latest
 
-        # 排程：已存在就更新，否則建立。排程帳戶只用來呼叫 Jobs API，不執行程式碼。
         JOB_URI=https://run.googleapis.com/v2/projects/$PROJECT_ID/locations/$_REGION/jobs/bbsign-crawl:run
         SCHED_SA=$PROJECT_NUMBER-compute@developer.gserviceaccount.com
         schedule() {
@@ -42,8 +36,6 @@ steps:
           gcloud scheduler jobs $$op http $$name --location $_REGION --time-zone Asia/Taipei \
             --http-method POST --uri $$JOB_URI --oauth-service-account-email $$SCHED_SA "$$@"
         }
-        # 每 3 天凌晨 3 點：只抓新賽事
         schedule bbsign-crawl-new --schedule "0 3 */3 * *" \
           --message-body '{"overrides":{"containerOverrides":[{"args":["-m","crawl.run","--new"]}]}}'
-        # 每週一凌晨 4 點：完整更新未截止的賽事
         schedule bbsign-crawl-weekly --schedule "0 4 * * 1"

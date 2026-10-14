@@ -2,133 +2,58 @@
 
 台灣路跑、馬拉松、自行車、鐵人三項的賽事報名資訊，整理在同一頁：點地圖上的縣市 → 看賽事 → 看比賽日、距離、報名費、紀念品與標籤 → 一鍵前往報名。
 
-另有幾個運動小工具（由原 z-running 網站整併而來，見 [plans/z-running-merge.md](plans/z-running-merge.md)）：
+## 特色
 
-| 頁面 | 內容 |
-| --- | --- |
+- **多平台整合**：自動收集 8 個報名平台與賽事行事曆的賽事，不用一個個網站翻。
+- **統一欄位**：各站格式不同，由 Claude Haiku 抽成相同欄位（比賽日、縣市、距離、報名費、紀念品、標籤），可以直接比較與篩選。
+- **地圖找賽事**：點台灣地圖上的縣市，就列出當地的賽事。
+- **比賽日天氣**：6 天內的賽事直接顯示比賽日天氣預報。
+- **運動小工具**（由原 z-running 網站整併而來）：
+
+| 頁面       | 內容                                                              |
+| ---------- | ----------------------------------------------------------------- |
 | `/weather` | 跑步天氣：依縣市或定位看現在適不適合跑、未來 6 小時、穿著補水建議 |
-| `/pace` | 配速計算：距離＋完賽時間或配速 → 配速、VDOT、訓練配速 |
-| `/tools` | 小工具：羽球記分板、重量與球速換算 |
-| 賽事詳細卡 | 6 天內的賽事顯示比賽日天氣；路跑賽事有「算配速」連結 |
+| `/pace`    | 配速計算：距離＋完賽時間或配速 → 配速、VDOT、訓練配速             |
+| `/tools`   | 小工具：羽球記分板、重量與球速換算                                |
 
 ## 架構
 
-| 部分              | 內容                                                                                 |
-| ----------------- | ------------------------------------------------------------------------------------ |
-| `frontend/`       | Vite + React + TypeScript；地圖用 `taiwan-atlas` + `d3-geo`；`/admin` 是管理頁；子頁依路徑 lazy 載入（`main.tsx`） |
-| `backend/main.py` | FastAPI：`GET /api/events`（全部未來賽事，篩選在前端做）、`/api/admin/*`（管理頁用） |
-| `backend/weather.py` | `GET /api/weather`、`/api/weather/week`：代理中央氣象署、環境部開放資料，整包快取在 Redis |
-| `backend/crawl/`  | 每個來源一支爬蟲 → `normalize.py` 用 Claude Haiku 抽成統一欄位 → 寫入資料庫          |
-| 資料庫            | Neon PostgreSQL，單表 `events`（`backend/schema.sql`，啟動時自動建立）               |
-| 快取              | Upstash Redis：快取 `/api/events` 與天氣資料（`bb:wx:*`）、限制管理頁登入失敗次數    |
+| 部分                 | 內容                                                                                 |
+| -------------------- | ------------------------------------------------------------------------------------ |
+| `frontend/`          | Vite + React + TypeScript；地圖用 `taiwan-atlas` + `d3-geo`；`/admin` 是管理頁       |
+| `backend/main.py`    | FastAPI：`GET /api/events`（全部未來賽事，篩選在前端做）、`/api/admin/*`（管理頁用） |
+| `backend/weather.py` | 跑步天氣 API：代理中央氣象署、環境部開放資料                                         |
+| `backend/crawl/`     | 每個來源一支爬蟲 → `normalize.py` 用 Claude Haiku 抽成統一欄位 → 寫入資料庫          |
+| 資料庫               | Neon PostgreSQL，單表 `events`                                                       |
+| 快取                 | Upstash Redis：賽事清單與天氣資料                                                    |
+| 部署                 | Google Cloud Run（網站服務＋定期執行的爬蟲 Job）                                     |
 
-### 資料來源
+## 資料來源
 
-| 來源             | 抓法                                                                                                                       |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| 全統運動         | 首頁卡片 + 「活動簡章」分頁                                                                                                |
-| 中華民國路跑協會 | 年度賽程表（今年＋明年）                                                                                                   |
-| 筆記報名         | `/list` + 內頁；海外賽由 AI 判斷縣市後濾掉                                                                                 |
-| 樂活報名網       | `signup.lohasnet.tw/lohasnet/index` JSON + 活動網站                                                                        |
-| 眾點資訊         | `/api/act` JSON + 活動簡章 API                                                                                             |
-| 運動筆記         | 「找賽事」行事曆 + 內頁。報名連結指向上面 5 站的略過；其他平台（伊貝特等）直接連過去；還沒有報名連結的先連運動筆記的賽事頁 |
-| 伊貝特           | 有人機驗證，不直接抓；賽事從運動筆記行事曆取得                                                                             |
-| 跑者廣場         | `taipeimarathon.org.tw/contest.aspx` 清單（只有 http），只收未截止報名的；報名網址相同或同日名稱相近的視為其他來源已有，略過 |
+| 來源             | 抓法                                                                                           |
+| ---------------- | ---------------------------------------------------------------------------------------------- |
+| 全統運動         | 首頁卡片 + 「活動簡章」分頁                                                                    |
+| 中華民國路跑協會 | 年度賽程表（今年＋明年）                                                                       |
+| 筆記報名         | 賽事清單 + 內頁；海外賽由 AI 判斷縣市後濾掉                                                    |
+| 樂活報名網       | 賽事 JSON + 活動網站                                                                           |
+| 眾點資訊         | 賽事 JSON + 活動簡章 API                                                                       |
+| 運動筆記         | 「找賽事」行事曆 + 內頁；補上其他平台（伊貝特等）的賽事                                        |
+| 伊貝特           | 有人機驗證，不直接抓；賽事從運動筆記行事曆取得                                                 |
+| 跑者廣場         | 賽事清單，只收未截止報名的；其他來源已有的略過                                                 |
 
-爬蟲每個網域每秒最多 1 個請求、遵守 robots.txt。內頁文字沒變就不會重新呼叫 AI。
+爬蟲每個網域每秒最多 1 個請求、遵守 robots.txt；內頁文字沒變就不會重新呼叫 AI。每 3 天抓一次新賽事、每週一完整更新。
 
-## 本機開發
-
-```bash
-# 1. 資料庫與 Redis
-docker run -d --name bbsign-pg -e POSTGRES_PASSWORD=dev -e POSTGRES_DB=bbsign -p 54329:5432 postgres:17-alpine
-docker run -d --name bbsign-redis -p 63799:6379 redis:7-alpine
-
-# 2. 後端（Python 3.10 以上）
-cd backend
-python3.13 -m venv .venv && .venv/bin/pip install -r requirements.txt
-cp .env.example .env   # 填入本機的值：DATABASE_URL=postgresql://postgres:dev@localhost:54329/bbsign、REDIS_URL=redis://localhost:63799，天氣要 CWA_API_KEY、MOENV_API_KEY
-set -a; source .env; set +a
-.venv/bin/uvicorn main:app --reload --port 8000
-
-# 3. 前端（另開終端機），/api 會轉到 8000 埠
-cd frontend && npm install && npm run dev
-```
-
-### 測試
-
-```bash
-cd frontend && npm test                        # 跑步評分、配速、羽球計分規則（vitest）
-cd backend && .venv/bin/python test_weather.py  # 天氣 API 自我檢查；有 CWA_API_KEY、MOENV_API_KEY 才會實際打上游
-```
-
-### 爬蟲
-
-```bash
-cd backend && set -a; source .env; set +a
-.venv/bin/python -m crawl.run --dry > raw.jsonl   # 只抓不寫，檢查每站都抓得到
-.venv/bin/python -m crawl.run                     # 抓取 → AI 正規化 → 寫入資料庫（需要 ANTHROPIC_API_KEY）
-.venv/bin/python -m crawl.run biji ctrun          # 只跑指定來源
-.venv/bin/python -m crawl.run --new               # 只處理資料庫還沒有的新賽事
-.venv/bin/python test_crawl.py                    # 鎖定保護與 AI 抽取的自我檢查
-```
-
-### 管理頁
-
-開 `/admin`，輸入 `ADMIN_TOKEN`。
+## 管理頁
 
 - 改過的賽事會鎖定，之後爬蟲不會覆蓋。
-- 不想顯示的賽事請勾「隱藏」，不要刪除，否則隔天爬蟲又會加回來。
-- 自行車、三鐵這類爬不到的比賽，可以在這裡手動新增。
-
-## 部署到 Google Cloud Run
-
-同一個映像檔有兩種用途：服務（網站＋API）和定期執行的爬蟲工作。
-
-- 地區建議 `asia-east1`（彰化）。
-- Neon 選 `ap-southeast-1`（新加坡）。
-- Upstash 選東京或新加坡。
-
-第一次部署時，用環境變數帶入機密。`ADMIN_TOKEN` 沒帶的話會自動產生：
-
-```bash
-PROJECT=你的專案ID DATABASE_URL='postgresql://…-pooler…' REDIS_URL='rediss://…' ANTHROPIC_API_KEY='sk-ant-…' ./deploy.sh
-```
-
-[deploy.sh](deploy.sh) 會依序完成以下工作：
-
-- 啟用需要的 API
-- 建立服務帳戶 `bbsign`
-- 把機密寫進 Secret Manager
-- 部署網站服務與爬蟲 Job（共用同一個映像檔）
-- 建立兩個排程：每 3 天抓一次新賽事、每週一完整更新
-
-之後更新程式碼時，直接執行 `./deploy.sh` 即可。要更換某個機密，只帶那個變數再執行一次。
-
-### push 自動部署（Cloud Build）
-
-[cloudbuild.yaml](cloudbuild.yaml) 會建置映像檔，並部署網站服務與爬蟲 Job。也會建立兩個排程：每 3 天抓一次新賽事、每週一完整更新未截止的賽事。管理頁的「只抓新賽事／完整更新」按鈕可以隨時手動啟動。
-
-一次性設定：
-
-1. 在 Cloud Run 主控台替服務 `bbsign` 設定 `ADMIN_TOKEN`，以及從 Secret Manager 帶入的 `DATABASE_URL`、`REDIS_URL`。爬蟲 Job 用的機密名稱寫在 `cloudbuild.yaml`（`BBSIGN_DATABASE_URL`、`UPSTASH_REDIS_URL`、`BBSIGN_ANTHROPIC_API_KEY`）。天氣金鑰由 `cloudbuild.yaml` 帶入服務，Secret Manager 裡要有 `CWA_API_KEY`、`MOENV_API_KEY`（中央氣象署、環境部開放資料平台免費申請）。
-2. Cloud Build 觸發條件的設定檔要選 `cloudbuild.yaml`。從 Cloud Run 主控台「持續部署」建立的觸發條件預設是內嵌設定，只會換映像檔，要改成這個檔案：
-   `gcloud builds triggers update github <觸發條件名稱> --build-config=cloudbuild.yaml`
-3. 建置與排程用 Compute 預設服務帳戶，它需要 `Cloud Run 管理員`、`服務帳戶使用者`、`Artifact Registry 寫入者`。網站服務與爬蟲 Job 用專用帳戶 `bbsign@`，只授權讀取它們用到的機密，以及對 `bbsign-crawl` 的 `roles/run.jobsExecutorWithOverrides`（管理頁查狀態、帶參數啟動爬蟲）。網站程式碼不要用有 `roles/editor` 的帳戶執行：網站一旦被攻破，整個 GCP 專案都會跟著被控制。
-4. 映像檔放在 Artifact Registry 的 `cloud-run-source-deploy`，沒有的話先建立：
-
-```bash
-gcloud artifacts repositories create cloud-run-source-deploy --repository-format docker --location asia-east1
-```
+- 不想顯示的賽事請勾「隱藏」，不要刪除，否則下次爬蟲又會加回來。
+- 自行車、三鐵這類爬不到的比賽，可以手動新增。
 
 ## 已知限制
 
-- **同一場賽事可能出現多張卡片**：
-    - 同一場出現在兩個來源時，會各自成為一張卡。
-    - 同一來源把一場賽事拆成「國內組／國際組」時，也會分成多張。
-    - 之後可依「日期＋縣市＋名稱相似度」合併。
-- **單場賽事沒有自己的網址**：賽事資料由前端載入後才呈現，且沒有個別頁面，搜尋「XX馬拉松 報名」很難直接連到本站。要搶這類搜尋流量時，再為每場賽事預先產生靜態頁面。
-- **公開 API 有 5 分鐘瀏覽器快取**：在管理頁存檔後，前台最多要 5 分鐘才會看到更新。
+- **同一場賽事可能出現多張卡片**：同一場出現在兩個來源，或同一來源拆成「國內組／國際組」時會分成多張。之後可依「日期＋縣市＋名稱相似度」合併。
+- **單場賽事沒有自己的網址**：賽事由前端載入後才呈現，搜尋「XX馬拉松 報名」很難直接連到本站。
+- **管理頁存檔後最多 5 分鐘才會在前台看到更新**（公開 API 有瀏覽器快取）。
 
 ## Roadmap
 
