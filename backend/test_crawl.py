@@ -10,7 +10,7 @@ from pathlib import Path
 from bs4 import BeautifulSoup
 
 import db
-from crawl import bijical, normalize, run, runnersquare, sportaiwan
+from crawl import bijical, cyclist, normalize, run, runnersquare, sportaiwan
 
 FIXTURES = Path(__file__).parent / "crawl" / "fixtures"
 
@@ -138,6 +138,29 @@ def check_sportaiwan() -> None:
     print("✓ SporTaiwan：只收報名中、還沒比賽的活動")
 
 
+def check_cyclist() -> None:
+    def li(pno: int, day: str, status: str = "報名中", series: str = "臺灣自行車登山王挑戰", signup: str = "7155#1") -> str:
+        return (f'<li><div class="eventItem"><figure><img src="upfile/eventpic/{pno}.jpg">'
+                f'<!--<div class="date">{day}</strong></div>--></figure>'
+                f'<div class="entry-info"><span class="btn btn-danger">{status}</span><h3 class="entry-title">賽事{pno}</h3>'
+                f'<div class="entry-meta">{series}</div></div><div class="entry-footer">'
+                f'<a href="event_txt.asp?pno={pno}">簡章</a><a href="https://bao-ming.com/eb/content/{signup}">報名</a></div></div></li>')
+    html = '<ul id="grid">' + "".join([
+        li(1, "2&nbsp;Nov.<strong>2026"),
+        li(2, "2&nbsp;Nov.<strong>2026", signup="7155#2"),  # 英文版活動頁，同一個伊貝特活動
+        li(3, "21&nbsp;Sep.<strong>2026"),  # 已經過了
+        li(4, "30&nbsp;Oct.<strong>2026", status="截止報名", signup="1"),
+        li(5, "11&nbsp;Nov.<strong>2026", series="線上虛擬騎乘", signup="2"),
+    ]) + "</ul>"
+    got = list(cyclist.parse(html, date(2026, 10, 14)))
+    assert [it["source_id"] for it in got] == ["1"], got
+    assert got[0]["signup_url"] == "https://bao-ming.com/eb/content/7155#1" and "日期：2026-11-02" in got[0]["text"]
+    page = BeautifulSoup('<div class="webeditor">重要公告【<a href="/a.pdf">請按此</a>】<a href="/old.pdf"></a>'
+                         '活動簡章【<span><a href="/b.pdf">請按此</a></span>】</div>', "html.parser")
+    assert cyclist.brochure(page, "https://www.cyclist.org.tw/event_txt.asp?pno=1") == "https://www.cyclist.org.tw/b.pdf"
+    print("✓ 自行車騎士協會：只收報名中、還沒比賽、非線上的活動，英文版不重複，找得到簡章 PDF")
+
+
 # 檔名 -> (縣市, 比賽日, 運動, 一定要抽到的距離)；縣市 None 表示海外賽要被濾掉
 EXPECTED = {
     "ctrun": ("高雄市", date(2026, 11, 8), "路跑", 4),
@@ -146,6 +169,7 @@ EXPECTED = {
     "sportsnet": ("金門縣", date(2027, 1, 16), "路跑", 42.195),
     "biji": (None, date(2027, 3, 6), "路跑", None),  # 不丹國際馬拉松
     "sportaiwan": ("新北市", date(2026, 12, 13), "路跑", 42.195),
+    "cyclist": ("花蓮縣", date(2026, 10, 30), "自行車", 122),
 }
 
 
@@ -167,6 +191,7 @@ if __name__ == "__main__":
     check_runnersquare()
     check_duplicates()
     check_sportaiwan()
+    check_cyclist()
     if os.getenv("DATABASE_URL"):
         check_locked_not_overwritten()
     if os.getenv("ANTHROPIC_API_KEY"):

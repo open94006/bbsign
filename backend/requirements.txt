@@ -4,5 +4,6 @@ uvicorn==0.37.*
 psycopg[binary]==3.2.*
 httpx==0.28.*
 beautifulsoup4==4.14.*
+pypdf==6.*  # 自行車騎士協會的簡章只有 PDF
 redis==6.4.*
 anthropic==1.12.*
