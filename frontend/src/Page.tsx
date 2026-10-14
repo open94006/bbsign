@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from 'react'
 import SiteNav from './SiteNav'
+import { FEEDBACK_URL } from './data'
 import './pages.css'
 
 type Props = { title: string; description: string; children: ReactNode }
@@ -28,7 +29,12 @@ export default function Page({ title, description, children }: Props) {
         <h1 className="t-headline">{title}</h1>
         {children}
       </main>
-      <footer className="page-foot t-caption">© {new Date().getFullYear()} BB Sign 比比賽・國內賽事報名資訊平台</footer>
+      <footer className="page-foot t-caption">
+        © {new Date().getFullYear()} BB Sign 比比賽・
+        <a className="bb-feedback" href={FEEDBACK_URL} target="_blank" rel="noopener noreferrer">
+          意見箱
+        </a>
+      </footer>
     </div>
   )
 }

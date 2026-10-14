@@ -4,7 +4,7 @@ import RaceDrawer from './RaceDrawer'
 import SiteNav from './SiteNav'
 import RaceRow, { RaceDialog } from './RaceRow'
 import TaiwanMap from './TaiwanMap'
-import { matches, readFilters, seasonOf, signupStatus, sportLabel, todayInTaiwan, writeFilters, type Filters as F, type RaceEvent, type Sport } from './data'
+import { FEEDBACK_URL, matches, readFilters, seasonOf, signupStatus, sportLabel, todayInTaiwan, writeFilters, type Filters as F, type RaceEvent, type Sport } from './data'
 
 const EMPTY: F = { county: null, q: '', month: [], sport: [], dist: [], tag: [], status: [], has: [] }
 
@@ -152,10 +152,14 @@ export default function App() {
       </main>
 
       <footer className="home-foot t-caption">
-        馬拉松、自行車、鐵人三項賽事列表與報名資訊
-        <br />
-        資料整理自各報名網站，以官方公告為準
-        <br />© {new Date().getFullYear()} BB Sign 比比賽
+        <span>馬拉松、自行車、鐵人三項賽事列表與報名資訊</span>
+        <span>資料整理自各報名網站，以官方公告為準</span>
+        <span>
+          © {new Date().getFullYear()} BB Sign 比比賽・
+          <a className="bb-feedback" href={FEEDBACK_URL} target="_blank" rel="noopener noreferrer">
+            意見箱
+          </a>
+        </span>
       </footer>
 
       <RaceDrawer

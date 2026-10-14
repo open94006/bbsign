@@ -21,6 +21,8 @@ body {
 .site-nav ul { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); margin: 0; padding: 0; list-style: none; }
 .site-nav a { color: var(--chalk-2); text-decoration: none; transition: color var(--dur-micro) var(--ease-out); }
 .site-nav a:hover { color: var(--chalk); }
+.bb-feedback { color: inherit; text-underline-offset: 3px; }
+.bb-feedback:hover { color: var(--chalk); }
 .site-nav a[aria-current='page'] { color: var(--sunrise); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 /* 放在 layer 裡：管理頁的 Tailwind utility 才蓋得過（unlayered 一律贏 layered） */
@@ -140,6 +142,9 @@ a.bb-dist { text-decoration: none; }
 
 .home-foot {
   grid-area: foot;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
   max-width: 380px;
   padding: var(--space-4) 0 var(--space-5);
   color: var(--chalk-3);

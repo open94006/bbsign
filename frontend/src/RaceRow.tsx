@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { CountdownChip, CountdownPanel, inListRange } from './Countdown'
 import RaceWeather from './weather/RaceWeather'
-import { SOURCES, dateParts, distances, feeFrom, feeRange, km, mapsUrl, safeUrl, signupStatus, sportLabel, type RaceEvent } from './data'
+import { FEEDBACK_URL, SOURCES, dateParts, distances, feeFrom, feeRange, km, mapsUrl, safeUrl, signupStatus, sportLabel, type RaceEvent } from './data'
 
 // 線條圖示：18px、currentColor、圓角端點
 const PinIcon = () => (
@@ -365,7 +365,12 @@ export function RaceDialog({ e, today, onClose }: { e: RaceEvent; today: string;
           )}
           <Routes e={e} />
         </div>
-        <p className="bb-source t-caption">資料來源：{SOURCES[e.source] ?? e.source}</p>
+        <p className="bb-source t-caption">
+          資料來源：{SOURCES[e.source] ?? e.source}・
+          <a className="bb-feedback" href={FEEDBACK_URL} target="_blank" rel="noopener noreferrer">
+            資料有誤？告訴我們
+          </a>
+        </p>
       </footer>
     </dialog>
   )
