@@ -16,10 +16,10 @@ import sys
 from datetime import date, datetime, timedelta, timezone
 
 import db
-from . import biji, bijical, ctrun, focusline, lohasnet, normalize, runnersquare, sportsnet
+from . import biji, bijical, ctrun, focusline, lohasnet, normalize, runnersquare, sportaiwan, sportsnet
 
 # runnersquare 要排最後：拿前面各站已寫入的報名網址去重
-SOURCES = {m.NAME: m for m in (ctrun, sportsnet, biji, lohasnet, focusline, bijical, runnersquare)}
+SOURCES = {m.NAME: m for m in (ctrun, sportsnet, biji, lohasnet, focusline, sportaiwan, bijical, runnersquare)}
 # 同一場留誰：管理頁手動新增 > 報名平台 > 行事曆（照 SOURCES 順序），同來源留先收的
 RANK = ("manual", *SOURCES)
 COLS = (
@@ -73,7 +73,9 @@ def upsert(c, source: str, it: dict, today: date | None = None, new_only: bool =
 
 
 def _bare(name: str) -> str:
-    return re.sub(r"20\d\d|\d+\s*年|第.{1,3}屆|[\W_]", "", name).lower()
+    s = re.sub(r"20\d\d|\d+\s*年|第.{1,3}屆|[\W_]", "", name).lower()
+    # 有中文名就不比英文（「冬山河馬拉松 Dongshan Marathon」和「冬山河馬拉松」），純英文名才比英文
+    return re.sub(r"[a-z]", "", s) if re.search(r"[\u4e00-\u9fff]{2}", s) else s
 
 
 def same_race(a: str, b: str) -> bool:

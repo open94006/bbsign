@@ -10,7 +10,7 @@ from pathlib import Path
 from bs4 import BeautifulSoup
 
 import db
-from crawl import bijical, normalize, run, runnersquare
+from crawl import bijical, normalize, run, runnersquare, sportaiwan
 
 FIXTURES = Path(__file__).parent / "crawl" / "fixtures"
 
@@ -101,6 +101,9 @@ def check_runnersquare() -> None:
 def check_duplicates() -> None:
     assert run.same_race("2026 宜蘭冬山河超級馬拉松", "2026宜蘭冬山河超級馬拉松")
     assert not run.same_race("2026 LAVA 大鵬灣暨115學年度鐵人三項甄試賽", "2026 LAVAKIDS 大鵬灣小鐵人賽")
+    assert run.same_race("2026 冬山河馬拉松 Dongshan  Marathon", "2026 冬山河馬拉松")  # SporTaiwan 與樂活
+    assert not run.same_race("2026 IRONKIDS Taiwan 墾丁國際小鐵人", "2026 IRONMAN 70.3 Kenting 墾丁國際")
+    assert not run.same_race("2026 OPEN!RUN", "2026 ELLE RUN")  # 純英文名照樣比英文
     d1, d2 = date(2026, 10, 25), date(2027, 3, 13)
     rows = [  # 2026-10 線上資料的真實案例
         {"id": 1, "source": "bijical", "name": "2026 長榮航空馬拉松", "race_date": d1, "county": "臺北市", "sport": "路跑"},
@@ -118,6 +121,23 @@ def check_duplicates() -> None:
     print("✓ 去重：依來源優先序保留一筆，同日名稱相近但不同縣市或運動的不併")
 
 
+def check_sportaiwan() -> None:
+    def li(aid: int, day: str) -> str:
+        return (f'<li><div class="spor_m_photo"><a href="//sportaiwan.com/activity/activity_register.php?id={aid}">'
+                f'<img src="//sportaiwan.com/upload/activity/{aid}/am_image2.jpg?_=1"></a></div>'
+                f'<div class="spor_m_title"><a href="//sportaiwan.com/activity/activity_register.php?id={aid}">賽事{aid}</a></div>'
+                '<div class="spor_m_time">活動地點：宜蘭縣冬山鄉 <div class="spor_mstar">0<span>評價</span></div></div>'
+                f'<div class="spor_m_time">活動日期：{day}</div><div class="spor_m_time">報名期限：0000.00.00-2026.12.01</div></li>')
+    html = (f'<div class="spor_main_azone"><ul>{li(1, "2026-11-14")}{li(2, "2026-10-13")}</ul></div>'
+            f'<div class="spor_main_azone finish_activity"><ul>{li(3, "2026-12-01")}</ul></div>')
+    got = list(sportaiwan.parse(html, date(2026, 10, 14)))
+    assert [it["source_id"] for it in got] == ["1"], got  # 已過的、截止區的不要
+    assert got[0]["signup_url"] == "https://sportaiwan.com/activity/activity_register.php?id=1"
+    assert got[0]["image_url"] == "https://sportaiwan.com/upload/activity/1/am_image2.jpg"
+    assert "評價" not in got[0]["text"] and "報名期限：未公布-2026.12.01" in got[0]["text"], got[0]["text"]
+    print("✓ SporTaiwan：只收報名中、還沒比賽的活動")
+
+
 # 檔名 -> (縣市, 比賽日, 運動, 一定要抽到的距離)；縣市 None 表示海外賽要被濾掉
 EXPECTED = {
     "ctrun": ("高雄市", date(2026, 11, 8), "路跑", 4),
@@ -125,6 +145,7 @@ EXPECTED = {
     "lohasnet": ("高雄市", date(2027, 4, 18), "路跑", 21),
     "sportsnet": ("金門縣", date(2027, 1, 16), "路跑", 42.195),
     "biji": (None, date(2027, 3, 6), "路跑", None),  # 不丹國際馬拉松
+    "sportaiwan": ("新北市", date(2026, 12, 13), "路跑", 42.195),
 }
 
 
@@ -145,6 +166,7 @@ if __name__ == "__main__":
     check_bijical_links()
     check_runnersquare()
     check_duplicates()
+    check_sportaiwan()
     if os.getenv("DATABASE_URL"):
         check_locked_not_overwritten()
     if os.getenv("ANTHROPIC_API_KEY"):

@@ -43,7 +43,8 @@ export const DISTANCES: Record<Sport, [string, number, number][]> = {
 }
 export const SOURCES: Record<string, string> = {
   ctrun: '全統運動', sportsnet: '中華民國路跑協會', biji: '筆記報名',
-  lohasnet: '樂活報名網', focusline: '眾點資訊', bijical: '運動筆記', manual: 'BB Sign 編輯整理',
+  lohasnet: '樂活報名網', focusline: '眾點資訊', sportaiwan: 'SporTaiwan', bijical: '運動筆記',
+  runnersquare: '跑者廣場', manual: 'BB Sign 編輯整理',
 }
 
 // has：賽事頁有的資訊，目前只有「路線圖」；沿用清單篩選，網址、摘要、清除都不用另外處理

@@ -14,8 +14,9 @@ from .fetch import get, text_of
 
 NAME = "bijical"
 BASE = "https://running.biji.co/"
-# 現有爬蟲的網域：全統、路協、筆記報名、樂活、眾點
+# 現有爬蟲的網域：全統、路協、筆記報名、樂活、眾點、SporTaiwan（Photou 是同一家的另一個網址）
 COVERED = ("ctrun.com.tw", "sportsnet.org.tw", "irunner.biji.co", "lohasnet.tw", "focusline.com.tw",
+           "sportaiwan.com", "photou.com.tw",
            "ctrun.tw", "fsurl.cc")  # 後兩個是全統、眾點的短網址
 
 
