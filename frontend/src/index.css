@@ -78,7 +78,21 @@ body {
 
 /* 賽事詳細卡：路跑的「算配速」連結，一個距離一個 */
 .bb-pace-links { display: flex; flex-wrap: wrap; gap: 0 var(--space-4); }
-.bb-pace-links .bb-btn--quiet { min-height: 0; font: inherit; }
+.bb-pace-links .bb-btn--quiet,
+.bb-facts dd > .bb-btn--quiet { min-height: 0; font: inherit; }
+
+/* 路線圖彈窗：嵌入頁要好幾秒才畫出地圖，iframe 透明、底下先墊一行載入中；手機全螢幕 */
+.bb-routes { width: min(960px, calc(100vw - 32px)); }
+.bb-routes__tabs { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.bb-routes__frame { display: grid; height: min(640px, 65dvh); overflow: hidden; border-radius: var(--radius-s); background: #fff; }
+.bb-routes__frame::before { content: '地圖載入中…'; grid-area: 1 / 1; place-self: center; color: #666; font-size: 14px; }
+.bb-routes iframe { grid-area: 1 / 1; width: 100%; height: 100%; border: 0; }
+.bb-routes .t-caption { margin: 0; color: var(--chalk-3); }
+@media (max-width: 599px) {
+  .bb-routes { width: 100vw; max-width: none; height: 100dvh; max-height: none; margin: 0; border: 0; border-radius: 0; }
+  .bb-routes .bb-dialog__body { display: flex; flex-direction: column; height: 100%; padding: var(--space-4); }
+  .bb-routes__frame { flex: 1; height: auto; min-height: 0; }
+}
 
 /* 最近可報名的比賽：佔滿剩下的高度，放不下的整列換到看不見的第二欄，不會半截或壓到按鈕 */
 .home-next { display: flex; flex: 1 1 0; flex-direction: column; gap: var(--space-1); min-height: 0; }

@@ -143,6 +143,61 @@ export function EventVisual({ e }: { e: RaceEvent }) {
   )
 }
 
+// 路線圖彈窗：地圖和海拔圖是 Ride with GPS／Garmin Connect 的嵌入頁，第一次打開才載入
+function Routes({ e }: { e: RaceEvent }) {
+  const ref = useRef<HTMLDialogElement>(null)
+  const [i, setI] = useState<number | null>(null)
+  const routes = (e.routes ?? []).filter((r) => safeUrl(r.url))
+  if (!routes.length) return null
+  const open = () => {
+    setI((n) => n ?? 0)
+    ref.current?.showModal()
+    fetch(`/api/route-view?id=${e.id}`, { method: 'POST' }).catch(() => {})
+  }
+  const close = () => ref.current?.close()
+  return (
+    <>
+      <button type="button" className="bb-btn bb-btn--quiet" aria-haspopup="dialog" onClick={open}>
+        路線圖
+      </button>
+      {/* 點背景（dialog 本身）關閉；Esc 由瀏覽器處理，不往外傳以免右側選單一起收起來 */}
+      <dialog
+        ref={ref}
+        className="bb-dialog bb-routes"
+        aria-labelledby={`routes-${e.id}`}
+        onClick={(k) => k.target === k.currentTarget && close()}
+        onKeyDown={(k) => k.stopPropagation()}
+      >
+        <div className="bb-dialog__body">
+          <header className="bb-dialog__head">
+            <h2 id={`routes-${e.id}`} className="t-title">
+              {e.name}
+            </h2>
+            <button type="button" className="bb-icon-btn bb-icon-btn--s bb-icon-btn--close" aria-label="關閉" onClick={close}>
+              ×
+            </button>
+          </header>
+          {routes.length > 1 && (
+            <div className="bb-routes__tabs">
+              {routes.map((r, n) => (
+                <button key={r.url} type="button" className="bb-chip" aria-pressed={n === i} onClick={() => setI(n)}>
+                  {r.label}
+                </button>
+              ))}
+            </div>
+          )}
+          {i !== null && (
+            <div className="bb-routes__frame">
+              <iframe src={routes[i].url} title={`${routes[i].label}路線與海拔`} />
+            </div>
+          )}
+          <p className="t-caption">地圖與海拔由 Ride with GPS／Garmin Connect 提供。橋梁、隧道、高架路段的海拔僅供參考，路線以大會公告為準。</p>
+        </div>
+      </dialog>
+    </>
+  )
+}
+
 function Venue({ e }: { e: RaceEvent }) {
   const [copied, setCopied] = useState(false)
   const text = e.venue ?? ''
@@ -212,6 +267,14 @@ export default function RaceRow({ e, today, open, onToggle }: Props) {
                   </dd>
                 </div>
               )}
+              {e.routes?.length ? (
+                <div>
+                  <dt className="t-label">路線</dt>
+                  <dd>
+                    <Routes e={e} />
+                  </dd>
+                </div>
+              ) : null}
               {e.sport === '路跑' && e.distances_km.length > 0 && (
                 <div>
                   <dt className="t-label">算配速</dt>

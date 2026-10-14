@@ -28,3 +28,6 @@ create table if not exists events (
 
 -- 舊資料表補欄位
 alter table events add column if not exists image_url text;
+-- 路線圖：[{"label": "全馬", "url": "<Ride with GPS／Garmin 嵌入網址>"}]，資料在 routes.sql。
+-- 爬蟲的 upsert 和管理頁存檔都只寫自己的欄位，不會覆蓋這欄
+alter table events add column if not exists routes jsonb;

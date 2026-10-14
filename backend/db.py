@@ -17,7 +17,9 @@ def connect() -> psycopg.Connection:
 
 def init() -> None:
     with connect() as c:
-        c.execute((Path(__file__).parent / "schema.sql").read_text())
+        for f in ("schema.sql", "routes.sql"):  # routes.sql 是路線圖資料，改了部署就生效
+            c.execute((Path(__file__).parent / f).read_text())
+    clear_cache()
 
 
 def clear_cache() -> None:

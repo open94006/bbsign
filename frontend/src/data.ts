@@ -19,6 +19,7 @@ export type RaceEvent = {
   signup_open: string | null
   signup_close: string | null
   source: string
+  routes: { label: string; url: string }[] | null // 各距離路線圖的嵌入網址（Ride with GPS、Garmin Connect）
 }
 
 export const COUNTIES = [
@@ -43,13 +44,14 @@ export const SOURCES: Record<string, string> = {
   lohasnet: '樂活報名網', focusline: '眾點資訊', bijical: '運動筆記', manual: 'BB Sign 編輯整理',
 }
 
-export type Filters = { county: string | null; q: string; month: string[]; sport: string[]; dist: string[]; tag: string[]; status: string[] }
-const LIST_KEYS = ['month', 'sport', 'dist', 'tag', 'status'] as const
+// has：賽事頁有的資訊，目前只有「路線圖」；沿用清單篩選，網址、摘要、清除都不用另外處理
+export type Filters = { county: string | null; q: string; month: string[]; sport: string[]; dist: string[]; tag: string[]; status: string[]; has: string[] }
+const LIST_KEYS = ['month', 'sport', 'dist', 'tag', 'status', 'has'] as const
 
 export function readFilters(search: string): Filters {
   const p = new URLSearchParams(search)
   const list = (k: string) => p.get(k)?.split(',').filter(Boolean) ?? []
-  return { county: p.get('county'), q: p.get('q') ?? '', month: list('month'), sport: list('sport'), dist: list('dist'), tag: list('tag'), status: list('status') }
+  return { county: p.get('county'), q: p.get('q') ?? '', month: list('month'), sport: list('sport'), dist: list('dist'), tag: list('tag'), status: list('status'), has: list('has') }
 }
 
 export function writeFilters(f: Filters): string {
@@ -80,6 +82,7 @@ export function matches(e: RaceEvent, f: Filters, today: string, ignoreCounty = 
     (!f.month.length || f.month.includes(String(month))) &&
     (!f.sport.length || (e.sport !== null && f.sport.includes(e.sport))) &&
     (!f.tag.length || e.tags.some((t) => f.tag.includes(t))) &&
+    (!f.has.includes('路線圖') || !!e.routes?.length) &&
     (!f.dist.length ||
       f.dist.some((key) => {
         const [sport, label] = key.split(':')

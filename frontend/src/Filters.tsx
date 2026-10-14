@@ -4,7 +4,7 @@ import { DISTANCES, SPORTS, STATUSES, TAGS, type Filters as F, type Sport } from
 type Props = { value: F; onChange: (f: F) => void; onSubmit: () => void }
 const MONTHS = Array.from({ length: 12 }, (_, i) => String(i + 1))
 
-type ListKey = 'month' | 'sport' | 'dist' | 'tag' | 'status'
+type ListKey = 'month' | 'sport' | 'dist' | 'tag' | 'status' | 'has'
 
 // 設計規範 Chip：運動與報名狀態直接排出來，選項多的月份、距離與性質收進原生 <details> 下拉
 export default function Filters({ value, onChange, onSubmit }: Props) {
@@ -85,6 +85,7 @@ export default function Filters({ value, onChange, onSubmit }: Props) {
             <div className="bb-chips">{TAGS.map((t) => chip('tag', t))}</div>
           </div>
         </details>
+        {chip('has', '路線圖')}
       </div>
     </div>
   )

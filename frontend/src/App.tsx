@@ -6,10 +6,10 @@ import { RaceHead } from './RaceRow'
 import TaiwanMap from './TaiwanMap'
 import { matches, readFilters, seasonOf, signupStatus, todayInTaiwan, writeFilters, type Filters as F, type RaceEvent } from './data'
 
-const EMPTY: F = { county: null, q: '', month: [], sport: [], dist: [], tag: [], status: [] }
+const EMPTY: F = { county: null, q: '', month: [], sport: [], dist: [], tag: [], status: [], has: [] }
 
 function summarize(f: F) {
-  const parts = [...f.status, ...f.month.map((m) => `${m}月`), ...f.sport, ...f.dist.map((d) => d.split(':')[1]), ...f.tag]
+  const parts = [...f.status, ...f.month.map((m) => `${m}月`), ...f.sport, ...f.dist.map((d) => d.split(':')[1]), ...f.tag, ...f.has.map((h) => `有${h}`)]
   if (f.q.trim()) parts.unshift(`「${f.q.trim()}」`)
   return parts.length ? parts.join('、') : '全部條件'
 }

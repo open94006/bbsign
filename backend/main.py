@@ -27,11 +27,12 @@ async def lifespan(_):
 # 不公開 /docs、/redoc、/openapi.json，免得管理 API 結構外露
 app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
 
-# 賽事主視覺來自各報名網站，所以 img-src 放寬到任何 http(s)
+# 賽事主視覺來自各報名網站，所以 img-src 放寬到任何 http(s)；路線圖嵌入 Ride with GPS、Garmin Connect
 SECURITY_HEADERS = {
     "Content-Security-Policy": (
         "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; "
         "font-src https://fonts.gstatic.com; img-src 'self' data: https: http:; connect-src 'self'; "
+        "frame-src https://ridewithgps.com https://connect.garmin.com; "
         "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
     ),
     "X-Frame-Options": "DENY",
@@ -52,7 +53,7 @@ async def security_headers(request: Request, call_next):
 
 PUBLIC = """
 select id, name, sport, race_date, county, venue, distances_km, fee_min, fee_max, souvenirs,
-       tags, signup_url, image_url, official_url, social_url, signup_open, signup_close, source
+       tags, signup_url, image_url, official_url, social_url, signup_open, signup_close, source, routes
 from events
 where is_race and not hidden and county is not null
   and race_date >= (now() at time zone 'Asia/Taipei')::date
@@ -70,6 +71,12 @@ def events():
         if db.cache:
             db.cache.set(db.CACHE_KEY, body, ex=3600)
     return Response(body, media_type="application/json", headers={"Cache-Control": "public, max-age=300"})
+
+
+@app.post("/api/route-view", status_code=204)
+def route_view(id: int):
+    # 打開路線圖時打一次：地圖在第三方網站，使用量只能從 Cloud Run 請求紀錄數這支的次數
+    return None
 
 
 app.include_router(weather.router)  # /api/weather、/api/weather/week
