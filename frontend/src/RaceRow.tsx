@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { CountdownChip, CountdownPanel, inListRange } from './Countdown'
 import RaceWeather from './weather/RaceWeather'
-import { SOURCES, dateParts, distances, feeFrom, feeRange, km, mapsUrl, safeUrl, signupStatus, type RaceEvent } from './data'
+import { SOURCES, dateParts, distances, feeFrom, feeRange, km, mapsUrl, safeUrl, signupStatus, sportLabel, type RaceEvent } from './data'
 
 // 線條圖示：18px、currentColor、圓角端點
 const PinIcon = () => (
@@ -71,7 +71,7 @@ export function RaceHead({ e, today, onClick }: { e: RaceEvent; today: string; o
       <span className="bb-race__main">
         <span className="bb-race__name t-title">{e.name}</span>
         <span className="bb-race__meta t-label">
-          {e.sport && <span className="bb-sport">{e.sport}</span>}
+          {e.sport && <span className="bb-sport">{sportLabel(e.sport)}</span>}
           <Distances e={e} />
           {from && <span>{from}</span>}
         </span>
@@ -142,7 +142,7 @@ export function EventVisual({ e }: { e: RaceEvent }) {
   return (
     <div className="bb-visual" data-sport={e.sport ?? undefined}>
       <span className="bb-visual__label t-label">
-        {e.sport && <span className="bb-sport">{e.sport}</span>}
+        {e.sport && <span className="bb-sport">{sportLabel(e.sport)}</span>}
         <span>{e.county}</span>
       </span>
       {longest !== undefined && <span className="bb-visual__num">{km(longest)}K</span>}
@@ -291,7 +291,7 @@ export function RaceDialog({ e, today, onClose }: { e: RaceEvent; today: string;
             {e.name}
           </h2>
           <span className="bb-race__meta t-label">
-            {e.sport && <span className="bb-sport">{e.sport}</span>}
+            {e.sport && <span className="bb-sport">{sportLabel(e.sport)}</span>}
             <span>{e.county}</span>
             <SignupStatus e={e} today={today} />
           </span>

@@ -28,6 +28,8 @@ export const COUNTIES = [
   '宜蘭縣', '花蓮縣', '臺東縣', '澎湖縣', '金門縣', '連江縣',
 ]
 export const SPORTS: Sport[] = ['路跑', '自行車', '三鐵']
+// 資料庫存「三鐵」，畫面上顯示全名
+export const sportLabel = (s: Sport) => (s === '三鐵' ? '鐵人三項' : s)
 export const TAGS = ['認證賽事', '越野／山徑', '公益／親子', '夜跑／主題趣味跑', '其他']
 export const STATUSES = ['報名中', '即將開放', '已截止'] as const
 // 背景天色仍依季節變化：只選一個月份時換成那個季節的顏色

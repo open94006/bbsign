@@ -4,12 +4,12 @@ import RaceDrawer from './RaceDrawer'
 import SiteNav from './SiteNav'
 import RaceRow, { RaceDialog } from './RaceRow'
 import TaiwanMap from './TaiwanMap'
-import { matches, readFilters, seasonOf, signupStatus, todayInTaiwan, writeFilters, type Filters as F, type RaceEvent } from './data'
+import { matches, readFilters, seasonOf, signupStatus, sportLabel, todayInTaiwan, writeFilters, type Filters as F, type RaceEvent, type Sport } from './data'
 
 const EMPTY: F = { county: null, q: '', month: [], sport: [], dist: [], tag: [], status: [], has: [] }
 
 function summarize(f: F) {
-  const parts = [...f.status, ...f.month.map((m) => `${m}月`), ...f.sport, ...f.dist.map((d) => d.split(':')[1]), ...f.tag, ...f.has.map((h) => `有${h}`)]
+  const parts = [...f.status, ...f.month.map((m) => `${m}月`), ...(f.sport as Sport[]).map(sportLabel), ...f.dist.map((d) => d.split(':')[1]), ...f.tag, ...f.has.map((h) => `有${h}`)]
   if (f.q.trim()) parts.unshift(`「${f.q.trim()}」`)
   return parts.length ? parts.join('、') : '全部條件'
 }
@@ -118,7 +118,7 @@ export default function App() {
           {error
             ? '賽事資料載入失敗，請重新整理頁面。'
             : events
-              ? `目前有 ${pool.length} 場符合條件的路跑、自行車、三鐵賽事。`
+              ? `目前有 ${pool.length} 場符合條件的路跑、自行車、鐵人三項賽事。`
               : '正在載入賽事…'}
         </p>
 
@@ -152,7 +152,9 @@ export default function App() {
       </main>
 
       <footer className="home-foot t-caption">
-        資料整理自全統運動、中華民國路跑協會、筆記報名、樂活報名網、眾點資訊、運動筆記。名額、費用與最新公告以各報名網站為準。
+        馬拉松、自行車、鐵人三項賽事列表與報名資訊
+        <br />
+        資料整理自各報名網站，以官方公告為準
         <br />© {new Date().getFullYear()} BB Sign 比比賽
       </footer>
 

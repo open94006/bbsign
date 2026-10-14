@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { DISTANCES, SPORTS, STATUSES, TAGS, type Filters as F, type Sport } from './data'
+import { DISTANCES, SPORTS, sportLabel, STATUSES, TAGS, type Filters as F, type Sport } from './data'
 
 type Props = { value: F; onChange: (f: F) => void; onSubmit: () => void }
 const MONTHS = Array.from({ length: 12 }, (_, i) => String(i + 1))
@@ -56,7 +56,7 @@ export default function Filters({ value, onChange, onSubmit }: Props) {
         />
       </form>
       <div className="bb-chips" role="group" aria-label="運動">
-        {SPORTS.map((s) => chip('sport', s, s, s))}
+        {SPORTS.map((s) => chip('sport', s, sportLabel(s), s))}
       </div>
       <div className="bb-chips" role="group" aria-label="報名狀態">
         {STATUSES.map((s) => chip('status', s))}
@@ -73,7 +73,7 @@ export default function Filters({ value, onChange, onSubmit }: Props) {
           <div className="bb-menu__panel">
             {sports.map((s) => (
               <div key={s} className="menu-group">
-                <span className="t-caption">{s}</span>
+                <span className="t-caption">{sportLabel(s)}</span>
                 <div className="bb-chips">{DISTANCES[s].map(([label]) => chip('dist', `${s}:${label}`, label))}</div>
               </div>
             ))}
