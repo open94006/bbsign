@@ -83,6 +83,19 @@ export const getAirPenalty = (pm25: number | null | undefined, aqi: number | nul
     return values.length ? toPercent(Math.max(...values), 80) : null;
 };
 
+// 空氣分數上限：加權扣分最多只扣權重那幾點（預設 25），空氣再差分數也還有 75，所以另外壓一個上限。
+// 錨點同樣是各級上緣：普通 → 70、對敏感族群不健康 → 55（這一級大約 55–70，接近 60）、對所有族群不健康 → 40、非常不健康 → 20、危害 → 0。
+const AIR_CAPS = [100, 70, 55, 40, 20, 0];
+const PM25_CAP_CURVE: Curve = PM25_EDGES.map((x, i) => [x, AIR_CAPS[i]]);
+const AQI_CAP_CURVE: Curve = AQI_EDGES.map((x, i) => [x, AIR_CAPS[i]]);
+
+// 空氣權重低於預設時，上限按比例放寬（權重 0 就沒有上限）；預設以上維持原上限，更重的部分交給加權扣分。
+export const getAirScoreCap = (pm25: number | null | undefined, aqi: number | null | undefined, airWeight: number): number => {
+    const caps = [isNum(pm25) ? interpolate(PM25_CAP_CURVE, pm25) : null, isNum(aqi) ? interpolate(AQI_CAP_CURVE, aqi) : null].filter(isNum);
+    if (!caps.length) return 100;
+    return 100 - (100 - Math.min(...caps)) * Math.min(1, airWeight / DEFAULT_WEIGHTS.air);
+};
+
 // 空氣品質六級（0 良好 … 5 危害），PM2.5 與 AQI 取較差的一級；給文字標籤與安全判斷用
 const getAirBand = (pm25: number | null | undefined, aqi: number | null | undefined): number | null => {
     const band = (edges: number[], x: number) => edges.slice(0, 5).filter((e) => x > e).length;
@@ -155,6 +168,7 @@ const AIR_ISSUES = ['', '', '空氣對敏感族群不友善', '空氣品質不�
 // 資料齊全時 ΣWᵢ = 100，就是 100 − Σ(Wᵢ × Pᵢ) / 100。
 // 缺資料的因素不當成理想天氣（不算 0），而是從分母拿掉、用其餘因素的權重重新正規化，並列在 missing；
 // 這樣的分數和資料齊全的分數不完全可比，所以挑最佳時段時資料齊全者優先（見 pickBestSlotIndex）。
+// 算完再和空氣上限取較低的（getAirScoreCap），被上限壓住時 deductions 加總不等於 100 − score。
 export const getRunningCondition = ({ temperature, humidity, windSpeed, pm25, aqi, precipitationProbability, weights = DEFAULT_WEIGHTS }: RunningInput) => {
     const dewPoint = calculateDewPoint(temperature, humidity);
     const factors: Record<FactorKey, number | null> = {
@@ -167,7 +181,8 @@ export const getRunningCondition = ({ temperature, humidity, windSpeed, pm25, aq
     const missing = keys.filter((k) => factors[k] == null);
     const usedWeight = keys.reduce((sum, k) => sum + (factors[k] == null ? 0 : weights[k]), 0); // 熱環境最少 10 點，不會是 0
     const deductions = Object.fromEntries(keys.map((k) => [k, ((factors[k] ?? 0) * weights[k]) / usedWeight])) as Record<FactorKey, number>;
-    const score = Math.round(Math.max(0, Math.min(100, 100 - keys.reduce((sum, k) => sum + deductions[k], 0))));
+    const weighted = 100 - keys.reduce((sum, k) => sum + deductions[k], 0);
+    const score = Math.round(Math.max(0, Math.min(100, weighted, getAirScoreCap(pm25, aqi, weights.air))));
 
     const issues: string[] = [];
     const tempIssue = temperature > 18 ? HEAT_ISSUES.find(([t]) => temperature > t) : COLD_ISSUES.find(([t]) => temperature <= t);

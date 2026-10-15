@@ -4,6 +4,7 @@ import {
     calculateHeatIndex,
     formatPace,
     getAirPenalty,
+    getAirScoreCap,
     getHeatStressLevel,
     getRainPenalty,
     getRunningCondition,
@@ -142,6 +143,24 @@ describe('getRunningCondition - 加權總分', () => {
         const both = run({ pm25: 150.4, aqi: 200 });
         const pmOnly = run({ pm25: 150.4, aqi: null });
         expect(both.score).toBe(pmOnly.score);
+    });
+
+    it('空氣上限：對敏感族群不健康時分數接近 60，越差壓越低', () => {
+        expect(run({ aqi: 100 }).score).toBe(70);
+        expect(run({ aqi: 125 }).score).toBe(63);
+        expect(run({ aqi: 150 }).score).toBe(55);
+        expect(run({ pm25: 45, aqi: null }).score).toBeGreaterThanOrEqual(55);
+        expect(run({ pm25: 45, aqi: null }).score).toBeLessThanOrEqual(70);
+        expect(run({ aqi: 200 }).score).toBe(40);
+        expect(run({ aqi: 400 }).score).toBe(0);
+        expect(run({ aqi: 50 }).score).toBe(100); // 良好不壓
+    });
+
+    it('空氣上限隨空氣權重放寬：預設一半權重只壓一半', () => {
+        const w = { thermal: 55, air: 15, wind: 15, rain: 15 }; // 15/25 = 0.6
+        expect(getAirScoreCap(null, 150, 15)).toBeCloseTo(100 - 45 * 0.6);
+        expect(run({ aqi: 150, weights: w }).score).toBe(73);
+        expect(getAirScoreCap(null, 150, 40)).toBe(55); // 預設以上不再加重
     });
 
     it('回傳露點與文字標籤', () => {
