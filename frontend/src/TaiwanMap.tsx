@@ -50,9 +50,11 @@ type Props = { counts: Record<string, number>; selected: string | null; onSelect
 
 // 設計規範 MapCounty：亮度代表賽事數，游標停留時縣市浮起，提示跟著游標
 export default function TaiwanMap({ counts, selected, onSelect }: Props) {
-  const [hover, setHover] = useState<string | null>(null)
+  // 手機版一進來先點好臺北市，讓人知道要點地圖、按「詳細」看賽事；斷點同 index.css 的手機版
+  const [mobile] = useState(() => matchMedia('(max-width: 859px)').matches)
+  const [hover, setHover] = useState<string | null>(mobile ? '臺北市' : null)
 
-  const [touch, setTouch] = useState(false)
+  const [touch, setTouch] = useState(mobile)
   const tip = useRef<HTMLDivElement>(null)
 
   // 用整張地圖的指標事件判斷游標下是哪個縣市：縣市本身會被重新排序（浮起），
